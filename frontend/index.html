@@ -24,6 +24,8 @@ h1{margin:0;color:#123b5d;font-size:26px}
 .status div,.module{border:1px solid #d9e2e8;background:white;border-radius:5px;padding:18px}
 .status label{display:block;color:#6b7d89;font-size:13px;margin-bottom:8px}
 .status b{color:#2f7452}
+.btn-danger{padding:8px 14px;border:1px solid #c94135;background:#fff;color:#c94135;cursor:pointer;border-radius:4px}
+.btn-danger:hover{background:#c94135;color:#fff}
 .module{cursor:pointer}
 .module:hover{border-color:#729bb1}
 .module h2{margin:0 0 8px;color:#123b5d;font-size:17px}
@@ -237,47 +239,59 @@ function getRequestMessages(){
 
 function renderNav(){
   nav.innerHTML=Object.entries(modules).map(([key,item])=>{
-    const mainButton=`
-      <button class="${key===current?"active":""}" data-key="${key}">
+    let html=`
+      <button class="${current===key?"active":""}" data-key="${key}">
         ${item.icon}　${item.name}
       </button>
     `;
 
     if(key==="law"){
-      return mainButton+`
+      const lawItems=[
+        ["national","国家法律"],
+        ["regulations","规章制度"],
+        ["emergency","应急管理部规章"],
+        ["ministries","其他部委规章"],
+        ["local","地方文件"],
+        ["policy","政策解读"]
+      ];
+
+      html+=`
         <div class="law-subnav">
-          <button class="${current==="law" && lawCategory==="national"?"law-subnav-active":""}" data-law-category="national">国家法律</button>
-          <button class="${current==="law" && lawCategory==="regulations"?"law-subnav-active":""}" data-law-category="regulations">规章制度</button>
-          <button class="${current==="law" && lawCategory==="emergency"?"law-subnav-active":""}" data-law-category="emergency">应急管理部规章</button>
-          <button class="${current==="law" && lawCategory==="ministries"?"law-subnav-active":""}" data-law-category="ministries">其他部委规章</button>
-          <button class="${current==="law" && lawCategory==="local"?"law-subnav-active":""}" data-law-category="local">地方文件</button>
-          <button class="${current==="law" && lawCategory==="policy"?"law-subnav-active":""}" data-law-category="policy">政策解读</button>
+          ${lawItems.map(([category,name])=>`
+            <button
+              class="${current==="law" && lawCategory===category
+                ?"law-subnav-active"
+                :""}"
+              data-law-category="${category}"
+            >
+              ${name}
+            </button>
+          `).join("")}
+        </div>
       `;
     }
 
-    return mainButton;
+    return html;
   }).join("");
 
   nav.querySelectorAll("button[data-key]").forEach(button=>{
-  button.onclick=()=>{
-    showPage(button.dataset.key);
-  };
-});
+    button.onclick=()=>{
+      showPage(button.dataset.key);
+    };
+  });
 
   nav.querySelectorAll("button[data-law-category]").forEach(button=>{
-  button.onclick=()=>{
-    lawCategory=button.dataset.lawCategory;
+    button.onclick=()=>{
+      lawCategory=button.dataset.lawCategory;
 
-    nav.querySelectorAll("button[data-law-category]").forEach(item=>{
-      item.classList.toggle(
-        "law-subnav-active",
-        item.dataset.lawCategory===lawCategory
-      );
-    });
-
-    showLawCategory(lawCategory);
-  };
-});
+      if(current!=="law"){
+        showPage("law");
+      }else{
+        renderNav();
+        showLawCategory(lawCategory);
+      }
+    };
+  });
 }
 
 function emptyPage(key){
@@ -1000,6 +1014,12 @@ async function loadDataCenterTasks(){
             >
               查看
             </button>
+            <button
+              class="btn-danger"
+              data-delete-id="${escapeHtml(item.id)}"
+            > 
+              删除
+            </button>
             ${
               item.status==="completed"
                 ? `<a class="download"
@@ -1034,6 +1054,62 @@ async function loadDataCenterTasks(){
         }
       };
     });
+
+    list.querySelectorAll("[data-delete-id]").forEach(button=>{
+      button.onclick=async()=>{
+        const id=button.dataset.deleteId;
+
+        if(!window.confirm("确定删除这条任务及其生成文档吗？")){
+          return;
+        }
+
+        try{
+          button.disabled=true;
+          button.textContent="删除中...";
+
+          const response=await fetch(
+           API_BASE+"/documents/"+encodeURIComponent(id),
+            {
+             method:"DELETE",
+             headers:{
+                "Accept":"*/*"
+             }
+            }
+          );
+
+      const text=await response.text();
+      let result={};
+
+      if(text){
+        try{
+          result=JSON.parse(text);
+        }catch(error){
+          result={message:text};
+        }
+      }
+
+      if(!response.ok){
+        throw new Error(
+          result.message ||
+          result.detail ||
+          "删除失败，HTTP "+response.status
+        );
+      }
+
+      loadDataCenterTasks();
+    }catch(error){
+      const status=document.getElementById("dataStatus");
+
+      if(status){
+        status.textContent="删除失败："+error.message;
+        status.className="note error";
+      }
+
+      button.disabled=false;
+      button.textContent="删除";
+    }
+  };
+});
 
     status.textContent=`共 ${result.total ?? items.length} 条任务`;
     status.className="note success";
@@ -1243,7 +1319,21 @@ function showPage(key){
 
   location.hash=key;
   renderNav();
+
+  if(key==="data"){
+    loadDataCenterTasks();
+  }
+
+  if(key==="documents"){
+    loadTaskTypes();
+    loadDocuments();
+  }
+
+  if(key==="law"){
+    showLawCategory(lawCategory);
+  }
 }
+
 loadChat();
 initPages();
 showPage(current);
