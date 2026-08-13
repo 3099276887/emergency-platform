@@ -1,0 +1,9 @@
+*.tar
+*.swp
+*.backup*
+*.log
+mysql/*
+backend/.env
+.env
+__pycache__/
+node_modules/

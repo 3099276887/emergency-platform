@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>应急安全综合平台</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f5f7;color:#233746;font-family:Arial,"Microsoft YaHei",sans-serif}
+header{position:fixed;left:0;top:0;width:100%;height:64px;background:#123b5d;color:white;padding:0 24px;display:flex;align-items:center;justify-content:space-between;z-index:30}
+header strong{font-size:22px}
+header span{font-size:13px}
+.layout{display:block;min-height:calc(100vh - 64px);padding-top:64px}
+aside{position:fixed;left:0;top:64px;bottom:0;width:210px;overflow-y:auto;background:white;border-right:1px solid #d9e2e8;padding:16px 10px;z-index:20}
+aside button{width:100%;padding:13px;border:0;background:white;text-align:left;color:#405664;font-size:15px;cursor:pointer}
+aside button.active{background:#e8f1f6;color:#123b5d;font-weight:bold;border-left:3px solid #c94135}
+main{margin-left:210px;padding:28px;max-width:1400px;min-height:calc(100vh - 64px)}
+.crumb{color:#6b7d89;font-size:13px;margin-bottom:12px}
+h1{margin:0;color:#123b5d;font-size:26px}
+.desc{color:#6b7d89;margin:8px 0 22px}
+.panel{background:white;border:1px solid #d9e2e8;border-radius:5px;padding:20px;margin-top:18px}
+.panel h2{font-size:17px;color:#123b5d;margin-top:0}
+.status,.modules{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.status div,.module{border:1px solid #d9e2e8;background:white;border-radius:5px;padding:18px}
+.status label{display:block;color:#6b7d89;font-size:13px;margin-bottom:8px}
+.status b{color:#2f7452}
+.module{cursor:pointer}
+.module:hover{border-color:#729bb1}
+.module h2{margin:0 0 8px;color:#123b5d;font-size:17px}
+.module p{margin:0;color:#6b7d89;line-height:1.6}
+.empty{min-height:190px;border:1px dashed #c9d5dc;background:#fafcfd;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#6b7d89;text-align:center}
+.empty strong{color:#435c6b;margin-bottom:8px}
+textarea,input{width:100%;padding:11px;border:1px solid #cbd7de;border-radius:4px;font:inherit}
+textarea{min-height:220px;resize:vertical;line-height:1.6}
+.field{margin:14px 0}
+.field label{display:block;font-size:14px;color:#536b78;margin-bottom:6px}
+.btn{padding:10px 18px;border:0;border-radius:4px;background:#123b5d;color:white;cursor:pointer}
+.btn:disabled{background:#9aaab3;cursor:not-allowed}
+.result{white-space:pre-wrap;min-height:220px;padding:14px;background:#fafcfd;border:1px solid #d9e2e8;line-height:1.65;overflow:auto}
+.note{color:#6b7d89;font-size:14px;line-height:1.6}
+.success{color:#2f7452}
+.error{color:#b6372e}
+.download{display:inline-block;margin-top:12px;color:#155f8a}
+.law-subnav{padding:0 0 8px 28px;background:#fff}
+.law-subnav button{display:block;width:100%;padding:8px 10px;border:0;background:white;color:#6b7d89;text-align:left;font-size:13px;cursor:pointer}
+.law-subnav button:hover{background:#f1f5f8;color:#123b5d}
+.law-subnav button.law-subnav-active{background:#e8f1f6;color:#123b5d;font-weight:bold;border-left:3px solid #c94135}
+.law-layout{display:grid;grid-template-columns:220px 1fr;gap:0;padding:0;overflow:hidden}
+.law-menu{width:auto;padding:0;background:#fafafa;border:0;border-right:1px solid #d9e2e8}
+.law-menu button{display:block;width:100%;padding:16px 20px;border:0;border-bottom:1px solid #d9e2e8;background:#fafafa;color:#405664;text-align:left;font-size:15px;cursor:pointer}
+.law-menu button:hover,.law-menu-active{background:#3975b5!important;color:white!important}
+.law-content{padding:20px 28px}
+.law-content h2{margin-top:0;color:#123b5d;font-size:22px;border-bottom:1px solid #9fb4c2;padding-bottom:10px}
+.law-list{min-height:300px}
+@media(max-width:700px){.law-layout{grid-template-columns:1fr}.law-menu{border-right:0;border-bottom:1px solid #d9e2e8}.law-menu button{display:inline-block;width:auto;padding:12px 14px}.law-content{padding:16px}}
+
+@media(max-width:700px){aside{width:150px}main{margin-left:150px;padding:16px}.status,.modules{grid-template-columns:1fr}.layout{min-height:calc(100vh - 64px)}}
+@media(max-width:560px){header{padding:0 14px}header span{display:none}aside{width:58px;padding:10px 5px}aside button{font-size:0;text-align:center;padding:13px 0}aside button::first-letter{font-size:20px}main{padding:16px}.status,.modules{grid-template-columns:1fr}}
+
+.panel-title-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.btn-secondary{
+  padding:8px 14px;
+  border:1px solid #9fb4c2;
+  background:#fff;
+  color:#123b5d;
+  cursor:pointer;
+  border-radius:4px;
+}
+
+.data-task{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  padding:16px 0;
+  border-bottom:1px solid #d9e2e8;
+}
+
+.data-task-main{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.data-task-main strong{
+  color:#123b5d;
+  font-size:16px;
+}
+
+.data-task-main span{
+  color:#6b7d89;
+  font-size:13px;
+}
+
+.data-task-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  white-space:nowrap;
+}
+
+.task-status{
+  color:#2f7452;
+}
+
+.status-failed{
+  color:#b33a32;
+}
+
+.status-processing,
+.status-pending{
+  color:#9a6a12;
+}
+
+@media(max-width:700px){
+  .data-task{
+    flex-direction:column;
+  }
+
+  .data-task-actions{
+    justify-content:flex-start;
+  }
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+</style>
+</head>
+<body>
+<header>
+<strong>应急安全综合平台</strong>
+<span>内网设备：192.168.10.101</span>
+</header>
+
+<div class="layout">
+<aside id="nav"></aside>
+<main id="app">
+  <section id="page-home" class="page"></section>
+  <section id="page-law" class="page"></section>
+  <section id="page-data" class="page"></section>
+  <section id="page-documents" class="page"></section>
+  <section id="page-ai" class="page"></section>
+</main>
+</div>
+
+<script>
+const modules={
+home:{name:"综合首页",icon:"⌂",desc:"查看平台模块与本机运行信息"},
+law:{name:"安全法律",icon:"法",desc:"查看安全生产、应急管理和消防相关法律法规"},
+data:{name:"数据中心",icon:"数",desc:"查看文档处理任务及生成结果"},
+documents:{name:"文档处理",icon:"文",desc:"粘贴文档并生成处理报告"},
+ai:{name:"AI 对话",icon:"AI",desc:"与本地千问模型进行对话"}
+};
+
+const API_BASE="/api/v1";
+
+let documentPollTimer=null;
+let currentDocumentId=null;
+const nav=document.getElementById("nav");
+const app=document.getElementById("app");
+const CHAT_STORAGE_KEY = "emergency_ai_chat_v1";
+let current=location.hash.slice(1)||"home";
+let lawCategory="national";
+let documentState = {
+  originalText: "",
+  requirements: "",
+  outputFilename: "处理结果.md",
+  status: "",
+  statusClass: "note",
+  result: "",
+  explanation: "",
+  downloadUrl: "",
+  processing: false,
+  docId: null
+};
+let aiAbortController = null;
+let chatMessages = [
+  {
+    role: "system",
+    content: "请严谨回答，不得虚构事实。只能依据用户提供的信息回答；无法确认时明确说明。"
+  }
+];
+
+function saveChat(){
+  localStorage.setItem(
+    CHAT_STORAGE_KEY,
+    JSON.stringify(chatMessages)
+  );
+}
+
+function loadChat(){
+  try{
+    const saved=JSON.parse(
+      localStorage.getItem(CHAT_STORAGE_KEY)
+    );
+
+    if(Array.isArray(saved) && saved.length>0){
+      chatMessages=saved;
+    }
+  }catch(error){
+    console.warn("读取历史对话失败",error);
+  }
+}
+
+function getChatHistory(){
+  return chatMessages
+    .filter(message=>message.role!=="system")
+    .map(message=>{
+      const name=message.role==="user"?"用户":"AI";
+      return name+"："+message.content;
+    })
+    .join("\n\n");
+}
+
+function getRequestMessages(){
+  const systemMessage=chatMessages.find(
+    message=>message.role==="system"
+  );
+
+  const history=chatMessages
+    .filter(message=>message.role!=="system")
+    .slice(-20);
+
+  return [systemMessage,...history];
+}
+
+function renderNav(){
+  nav.innerHTML=Object.entries(modules).map(([key,item])=>{
+    const mainButton=`
+      <button class="${key===current?"active":""}" data-key="${key}">
+        ${item.icon}　${item.name}
+      </button>
+    `;
+
+    if(key==="law"){
+      return mainButton+`
+        <div class="law-subnav">
+          <button class="${current==="law" && lawCategory==="national"?"law-subnav-active":""}" data-law-category="national">国家法律</button>
+          <button class="${current==="law" && lawCategory==="regulations"?"law-subnav-active":""}" data-law-category="regulations">规章制度</button>
+          <button class="${current==="law" && lawCategory==="emergency"?"law-subnav-active":""}" data-law-category="emergency">应急管理部规章</button>
+          <button class="${current==="law" && lawCategory==="ministries"?"law-subnav-active":""}" data-law-category="ministries">其他部委规章</button>
+          <button class="${current==="law" && lawCategory==="local"?"law-subnav-active":""}" data-law-category="local">地方文件</button>
+          <button class="${current==="law" && lawCategory==="policy"?"law-subnav-active":""}" data-law-category="policy">政策解读</button>
+      `;
+    }
+
+    return mainButton;
+  }).join("");
+
+  nav.querySelectorAll("button[data-key]").forEach(button=>{
+  button.onclick=()=>{
+    showPage(button.dataset.key);
+  };
+});
+
+  nav.querySelectorAll("button[data-law-category]").forEach(button=>{
+  button.onclick=()=>{
+    lawCategory=button.dataset.lawCategory;
+
+    nav.querySelectorAll("button[data-law-category]").forEach(item=>{
+      item.classList.toggle(
+        "law-subnav-active",
+        item.dataset.lawCategory===lawCategory
+      );
+    });
+
+    showLawCategory(lawCategory);
+  };
+});
+}
+
+function emptyPage(key){
+  const item=modules[key];
+  return `
+    <div class="crumb">当前位置 / ${item.name}</div>
+    <h1>${item.name}</h1>
+    <p class="desc">${item.desc}</p>
+    <section class="panel">
+      <h2>业务数据</h2>
+      <div class="empty">
+        <strong>暂无真实数据</strong>
+        <span>后端接口和数据库接入后，此处显示实际业务记录。</span>
+      </div>
+    </section>
+  `;
+}
+
+function dataCenterPage(){
+  return `
+    <div class="crumb">当前位置 / 数据中心</div>
+    <h1>数据中心</h1>
+    <p class="desc">查看文档处理任务及其生成结果。</p>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2>历史任务</h2>
+        <button id="dataRefreshBtn" class="btn-secondary">刷新</button>
+      </div>
+
+      <p id="dataStatus" class="note">正在加载任务...</p>
+      <div id="dataTaskList"></div>
+    </section>
+  `;
+}
+
+
+function home(){
+  const cards=Object.entries(modules)
+    .filter(([key])=>key!=="home")
+    .map(([key,item])=>
+      `<div class="module" data-key="${key}">
+        <h2>${item.name}</h2>
+        <p>${item.desc}</p>
+      </div>`
+    ).join("");
+
+  return `
+    <div class="crumb">当前位置 / 综合首页</div>
+    <h1>平台首页</h1>
+    <p class="desc">本页面不展示演示数据，只显示已确认的系统信息和功能入口。</p>
+
+    <div class="status">
+      <div><label>设备地址</label><b>192.168.10.101</b></div>
+      <div><label>访问方式</label><b>内网 HTTP</b></div>
+      <div><label>数据状态</label><b>等待后端接入</b></div>
+    </div>
+
+    <section class="panel">
+      <h2>功能模块</h2>
+      <div class="modules">${cards}</div>
+    </section>
+  `;
+}
+
+async function loadTaskTypes(){
+  const select=document.getElementById("taskType");
+  const description=document.getElementById("taskDescription");
+
+  try{
+    const response=await fetch(API_BASE+"/tasks");
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(result.message || "任务类型加载失败");
+    }
+
+    const tasks=Array.isArray(result.tasks) ? result.tasks : [];
+
+    if(tasks.length===0){
+      select.innerHTML='<option value="">暂无任务类型</option>';
+      return;
+    }
+
+    select.innerHTML=tasks.map(task=>`
+      <option value="${escapeHtml(task.key)}">
+        ${escapeHtml(task.name)}
+      </option>
+    `).join("");
+
+    function updateDescription(){
+      const selected=tasks.find(task=>task.key===select.value);
+      description.textContent=selected ? selected.description || "" : "";
+    }
+
+    select.onchange=updateDescription;
+    updateDescription();
+  }catch(error){
+    select.innerHTML='<option value="">加载失败</option>';
+    description.textContent=error.message;
+  }
+}
+
+function lawPage(){
+  return `
+    <div class="crumb">当前位置 / 安全法律</div>
+    <h1>安全法律</h1>
+    <p class="desc">查看安全生产、应急管理和消防减灾相关法律法规。</p>
+
+    <section class="panel law-layout">
+      
+      <section class="panel">
+      <h2 id="lawTitle">国家法律</h2>
+      <div id="lawList" class="law-list">
+        <div class="empty">
+            <strong>暂无真实法律法规数据</strong>
+            <span>接入法律法规接口后，此处显示实际内容。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function showLawCategory(category){
+  const titles={
+    national:"国家法律",
+    regulations:"规章制度",
+    emergency:"应急管理部规章",
+    ministries:"其他部委规章",
+    local:"地方文件",
+    policy:"政策解读"
+  };
+
+  const title=document.getElementById("lawTitle");
+  const list=document.getElementById("lawList");
+
+  if(!title || !list){
+    return;
+  }
+
+  title.textContent=titles[category] || "安全法律";
+
+  list.innerHTML=`
+    <div class="empty">
+      <strong>暂无真实法律法规数据</strong>
+      <span>当前分类尚未接入真实数据接口。</span>
+    </div>
+  `;
+}
+
+function documentsPage(){
+  return `
+    <div class="crumb">当前位置 / 文档处理</div>
+    <h1>AI 文档处理</h1>
+    <p class="desc">调用本地 SafeRAG 处理文档并生成报告。</p>
+
+    <section class="panel">
+      <h2>提交任务</h2>
+
+      <div class="field">
+        <label for="taskType">任务类型</label>
+        <select id="taskType">
+          <option value="">正在加载任务类型...</option>
+        </select>
+        <p id="taskDescription" class="note"></p>
+      </div>
+
+      <div class="field">
+        <label for="documentContent">粘贴文档内容</label>
+        <textarea
+          id="documentContent"
+          placeholder="请粘贴需要处理的真实文档内容"
+        >${escapeHtml(documentState.originalText || "")}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="instruction">处理要求</label>
+        <textarea
+          id="instruction"
+          placeholder="请输入具体的分析、审查或整理要求"
+        >${escapeHtml(
+          documentState.requirements ||
+          "请整理文档结构，保留原始事实，不得虚构内容。"
+        )}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="fileName">输出文件名</label>
+        <input
+          id="fileName"
+          type="text"
+          value="${escapeHtml(
+            documentState.outputFilename || "安全分析报告"
+          )}"
+          placeholder="例如：安全分析报告"
+        >
+      </div>
+
+      <button
+        id="processBtn"
+        class="btn"
+        ${documentState.processing ? "disabled" : ""}
+      >
+        ${documentState.processing ? "处理中..." : "开始处理"}
+      </button>
+
+      <p
+        id="documentStatus"
+        class="${escapeHtml(documentState.statusClass || "note")}"
+      >
+        ${escapeHtml(documentState.status || "")}
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>生成结果</h2>
+
+      <pre id="resultContent" class="result">${
+        escapeHtml(documentState.result || "尚未提交任务")
+      }</pre>
+
+      <a
+        id="downloadLink"
+        class="download"
+        href="${escapeHtml(documentState.downloadUrl || "")}"
+        ${documentState.downloadUrl ? "" : "hidden"}
+      >
+        下载生成文档
+      </a>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2>历史任务</h2>
+        <button id="refreshDocuments" class="btn-secondary">
+          刷新
+        </button>
+      </div>
+
+      <div id="documentList">
+        正在加载历史任务...
+      </div>
+    </section>
+  `;
+}
+
+function escapeHtml(value){
+  return String(value || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function saveDocumentForm(){
+  const source = document.getElementById("documentContent");
+  const instruction = document.getElementById("instruction");
+  const fileName = document.getElementById("fileName");
+
+  if(source){
+    documentState.originalText = source.value;
+  }
+
+  if(instruction){
+    documentState.requirements = instruction.value;
+  }
+
+  if(fileName){
+    documentState.outputFilename = fileName.value;
+  }
+}
+
+function aiPage(){
+  return `
+    <div class="crumb">当前位置 / AI 对话</div>
+    <h1>AI 对话</h1>
+    <p class="desc">调用本地 Qwen3.5 模型，数据仅在内网处理。</p>
+
+    <section class="panel">
+      <h2>对话内容</h2>
+      <div id="chatLog" class="result">${
+        getChatHistory() || "暂无对话"
+      }</div>
+
+      <div class="field">
+        <label for="aiInput">输入问题</label>
+        <textarea id="aiInput"
+          style="min-height:120px"
+          placeholder="请输入问题"></textarea>
+      </div>
+
+      <button id="aiSend" class="btn">发送</button>
+      <button id="aiStop" class="btn" type="button" disabled>停止</button>
+      <button id="clearChat" class="btn" type="button">新建对话</button>
+      <span id="aiStatus" class="note"></span>
+    </section>
+  `;
+}
+
+async function sendAiMessage(){
+  aiAbortController = new AbortController();
+  const stopButton = document.getElementById("aiStop");
+  stopButton.disabled = false;
+  const input=document.getElementById("aiInput");
+  const log=document.getElementById("chatLog");
+  const status=document.getElementById("aiStatus");
+  const button=document.getElementById("aiSend");
+  const content=input.value.trim();
+
+  if(!content){
+    status.textContent="请输入问题";
+    status.className="note error";
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent="处理中...";
+  status.textContent="正在处理...";
+  status.className="note";
+
+  chatMessages.push({
+    role:"user",
+    content:content
+  });
+
+  saveChat();
+
+  log.textContent=getChatHistory()+"\n\nAI：";
+  log.scrollTop=log.scrollHeight;
+
+  let fullAnswer="";
+  let buffer="";
+
+  try{
+    const response=await fetch(
+      "/v1/chat/completions",
+      {
+        method:"POST",
+        headers:{
+          "Accept":"text/event-stream",
+          "Content-Type":"application/json"
+        },
+        signal: aiAbortController.signal,
+        body:JSON.stringify({
+          model:"tpu-qwen3.5",
+          messages:getRequestMessages(),
+          stream:true,
+          temperature:0.7,
+          max_tokens:2048
+        })
+      }
+    );
+
+    if(!response.ok){
+      const errorText=await response.text();
+      throw new Error(
+        errorText || "AI 接口请求失败"
+      );
+    }
+
+    if(!response.body){
+      throw new Error(
+        "浏览器不支持流式响应"
+      );
+    }
+
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder("utf-8");
+
+    function handleLine(rawLine){
+      const line=rawLine.trim();
+
+      if(!line || !line.startsWith("data:")){
+        return;
+      }
+
+      const data=line.slice(5).trim();
+
+      if(!data || data==="[DONE]"){
+        return;
+      }
+
+      try{
+        const chunk=JSON.parse(data);
+        const text=
+          chunk.choices &&
+          chunk.choices[0] &&
+          chunk.choices[0].delta &&
+          chunk.choices[0].delta.content;
+
+        if(text){
+          fullAnswer+=text;
+          log.textContent+=text;
+          log.scrollTop=log.scrollHeight;
+        }
+      }catch(error){
+        console.warn(
+          "忽略无法解析的数据块：",
+          data
+        );
+      }
+    }
+
+    while(true){
+      const {value,done}=await reader.read();
+
+      if(done){
+        break;
+      }
+
+      buffer+=decoder.decode(
+        value,
+        {stream:true}
+      );
+
+      const lines=buffer.split(/\r?\n/);
+      buffer=lines.pop() || "";
+
+      for(const line of lines){
+        handleLine(line);
+      }
+    }
+
+    if(buffer.trim()){
+      handleLine(buffer);
+    }
+
+    chatMessages.push({
+      role:"assistant",
+      content:fullAnswer
+    });
+
+    saveChat();
+
+    input.value="";
+    status.textContent="处理完成";
+    status.className="note success";
+
+  }catch(error){
+    if(error.name === "AbortError"){
+    status.textContent = "已停止生成";
+    status.className = "note";
+    }else{
+    status.textContent = "请求失败：" + error.message;
+    status.className = "note error";
+    }
+  }finally{
+    button.disabled=false;
+    button.textContent="发送";
+    stopButton.disabled = true;
+    aiAbortController = null;
+  }
+}
+
+async function processDocument(){
+  const taskType=document.getElementById("taskType").value;
+  const originalText=document.getElementById("documentContent").value.trim();
+  const requirements=document.getElementById("instruction").value.trim();
+  const outputFilename=document.getElementById("fileName").value.trim();
+
+  const button=document.getElementById("processBtn");
+  const status=document.getElementById("documentStatus");
+  const resultBox=document.getElementById("resultContent");
+  const downloadLink=document.getElementById("downloadLink");
+
+  if(!taskType || !originalText || !requirements || !outputFilename){
+    status.textContent="请完整填写任务类型、原始文档、处理要求和文件名";
+    status.className="note error";
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent="正在提交...";
+  status.textContent="正在提交任务";
+  status.className="note";
+  resultBox.textContent="任务提交中...";
+  downloadLink.hidden=true;
+
+  try{
+    const response=await fetch(API_BASE+"/documents/process",{
+      method:"POST",
+      headers:{
+        "Accept":"application/json",
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        task_type:taskType,
+        original_text:originalText,
+        requirements:requirements,
+        output_filename:outputFilename
+      })
+    });
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(result));
+    }
+
+    if(!result.id){
+      throw new Error("后端没有返回任务 ID");
+    }
+
+    currentDocumentId=result.id;
+    status.textContent=result.message || "任务已提交";
+    resultBox.textContent="AI 正在处理，请等待...";
+
+    startDocumentPolling(result.id);
+    loadDocuments();
+  }catch(error){
+    status.textContent=error.message;
+    status.className="note error";
+    resultBox.textContent="提交失败";
+    button.disabled=false;
+    button.textContent="开始处理";
+  }
+}
+
+function startDocumentPolling(id){
+  if(documentPollTimer){
+    clearInterval(documentPollTimer);
+  }
+
+  checkDocumentStatus(id);
+
+  documentPollTimer=setInterval(()=>{
+    checkDocumentStatus(id);
+  },3000);
+}
+
+async function checkDocumentStatus(id){
+  const status=document.getElementById("documentStatus");
+  const resultBox=document.getElementById("resultContent");
+  const button=document.getElementById("processBtn");
+  const downloadLink=document.getElementById("downloadLink");
+
+  try{
+    const response=await fetch(
+      API_BASE+"/documents/"+encodeURIComponent(id)
+    );
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(result));
+    }
+
+    if(result.status==="completed"){
+      clearInterval(documentPollTimer);
+      documentPollTimer=null;
+
+      status.textContent="处理完成";
+      status.className="note success";
+      resultBox.textContent=result.report_content || "后端未返回报告内容";
+
+      downloadLink.href=
+        API_BASE+"/documents/"+encodeURIComponent(id)+"/download";
+      downloadLink.download=result.output_filename || "分析报告";
+      downloadLink.hidden=false;
+
+      button.disabled=false;
+      button.textContent="开始处理";
+      loadDocuments();
+      return;
+    }
+
+    if(result.status==="failed"){
+      clearInterval(documentPollTimer);
+      documentPollTimer=null;
+
+      status.textContent="处理失败";
+      status.className="note error";
+      resultBox.textContent=result.report_content || "后端未返回失败原因";
+
+      button.disabled=false;
+      button.textContent="重新提交";
+      loadDocuments();
+      return;
+    }
+
+    status.textContent=result.status==="pending"
+      ? "任务排队中"
+      : "AI 正在处理";
+  }catch(error){
+    clearInterval(documentPollTimer);
+    documentPollTimer=null;
+
+    status.textContent="查询失败："+error.message;
+    status.className="note error";
+    button.disabled=false;
+    button.textContent="重新提交";
+  }
+}
+
+async function loadDocuments(){
+  const list=document.getElementById("documentList");
+
+  try{
+    const response=await fetch(
+      API_BASE+"/documents?page=1&page_size=20"
+    );
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(result));
+    }
+
+    const items=Array.isArray(result.items) ? result.items : [];
+
+    if(items.length===0){
+      list.innerHTML='<p class="desc">暂无真实任务记录</p>';
+      return;
+    }
+
+    list.innerHTML=items.map(item=>`
+      <div class="history-item">
+        <strong>${escapeHtml(item.output_filename||"未命名文档")}</strong>
+        <span>${escapeHtml(item.task_type||"")}</span>
+        <span>${escapeHtml(item.status||"")}</span>
+        <span>${escapeHtml(formatTime(item.created_at))}</span>
+        <button data-document-id="${escapeHtml(item.id)}">查看</button>
+      </div>
+    `).join("");
+
+    list.querySelectorAll("[data-document-id]").forEach(button=>{
+      button.onclick=()=>{
+        currentDocumentId=button.dataset.documentId;
+        startDocumentPolling(currentDocumentId);
+      };
+    });
+  }catch(error){
+    list.textContent="历史任务加载失败："+error.message;
+  }
+}
+
+async function loadDataCenterTasks(){
+  const list=document.getElementById("dataTaskList");
+  const status=document.getElementById("dataStatus");
+
+  if(!list || !status){
+    return;
+  }
+
+  status.textContent="正在加载任务...";
+  status.className="note";
+
+  try{
+    const response=await fetch(
+      API_BASE+"/documents?page=1&page_size=50",
+      {
+        method:"GET",
+        headers:{
+          "Accept":"application/json"
+        },
+        cache:"no-store"
+      }
+    );
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(result));
+    }
+
+    const items=Array.isArray(result.items) ? result.items : [];
+
+    if(items.length===0){
+      list.innerHTML=`
+        <div class="empty">
+          <strong>暂无真实任务</strong>
+          <span>完成文档处理后，任务会显示在这里。</span>
+        </div>
+      `;
+      status.textContent="";
+      return;
+    }
+
+    list.innerHTML=items.map(item=>{
+      const stateName={
+        pending:"排队中",
+        processing:"处理中",
+        completed:"已完成",
+        failed:"失败"
+      }[item.status] || item.status || "未知";
+
+      const detailUrl=
+        API_BASE+"/documents/"+encodeURIComponent(item.id);
+
+      const downloadUrl=
+        API_BASE+"/documents/"+
+        encodeURIComponent(item.id)+"/download";
+
+      return `
+        <div class="data-task">
+          <div class="data-task-main">
+            <strong>${escapeHtml(
+              item.output_filename || "未命名任务"
+            )}</strong>
+            <span>任务类型：${escapeHtml(
+              item.task_type || "未指定"
+            )}</span>
+            <span>创建时间：${escapeHtml(
+              formatTime(item.created_at)
+            )}</span>
+            <span>完成时间：${escapeHtml(
+              formatTime(item.completed_at) || "未完成"
+            )}</span>
+          </div>
+
+          <div class="data-task-actions">
+            <b class="task-status status-${escapeHtml(item.status || "")}">
+              ${escapeHtml(stateName)}
+            </b>
+            <button
+              class="btn-secondary"
+              data-detail-url="${escapeHtml(detailUrl)}"
+            >
+              查看
+            </button>
+            ${
+              item.status==="completed"
+                ? `<a class="download"
+                    href="${escapeHtml(downloadUrl)}"
+                    download>
+                    下载
+                   </a>`
+                : ""
+            }
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    list.querySelectorAll("[data-detail-url]").forEach(button=>{
+      button.onclick=async()=>{
+        try{
+          const response=await fetch(button.dataset.detailUrl,{
+            headers:{"Accept":"application/json"}
+          });
+
+          const detail=await response.json();
+
+          if(!response.ok){
+            throw new Error(getErrorMessage(detail));
+          }
+
+          showDataTaskDetail(detail);
+        }catch(error){
+          status.textContent="读取任务失败："+error.message;
+          status.className="note error";
+        }
+      };
+    });
+
+    status.textContent=`共 ${result.total ?? items.length} 条任务`;
+    status.className="note success";
+  }catch(error){
+    list.innerHTML="";
+    status.textContent="历史任务加载失败："+error.message;
+    status.className="note error";
+  }
+}
+
+function showDataTaskDetail(detail){
+  const old=document.getElementById("dataTaskDetail");
+
+  if(old){
+    old.remove();
+  }
+
+  const panel=document.createElement("section");
+  panel.id="dataTaskDetail";
+  panel.className="panel";
+
+  panel.innerHTML=`
+    <div class="panel-title-row">
+      <h2>任务详情</h2>
+      <button class="btn-secondary" id="closeDataDetail">
+        关闭
+      </button>
+    </div>
+
+    <p><strong>文件名：</strong>${escapeHtml(
+      detail.output_filename || ""
+    )}</p>
+
+    <p><strong>任务类型：</strong>${escapeHtml(
+      detail.task_type || ""
+    )}</p>
+
+    <p><strong>状态：</strong>${escapeHtml(
+      detail.status || ""
+    )}</p>
+
+    <pre class="result">${escapeHtml(
+      detail.report_content || "暂无生成报告"
+    )}</pre>
+  `;
+
+  document.getElementById("page-data").appendChild(panel);
+
+  document.getElementById("closeDataDetail").onclick=()=>{
+    panel.remove();
+  };
+}
+
+function getErrorMessage(result){
+  if(Array.isArray(result.detail)){
+    return result.detail.map(item=>item.msg).join("；");
+  }
+
+  return result.message || result.detail || "接口请求失败";
+}
+
+function escapeHtml(value){
+  return String(value??"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function formatTime(value){
+  if(!value){
+    return "";
+  }
+
+  const date=new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("zh-CN");
+}
+
+function initPages(){
+  document.getElementById("page-home").innerHTML=home();
+  document.getElementById("page-law").innerHTML=lawPage();
+  document.getElementById("page-data").innerHTML=dataCenterPage();
+  document.getElementById("page-documents").innerHTML=documentsPage();
+  document.getElementById("page-ai").innerHTML=aiPage();
+
+  const dataRefreshButton=
+  document.getElementById("dataRefreshBtn");
+
+if(dataRefreshButton){
+  dataRefreshButton.onclick=loadDataCenterTasks;
+}
+
+  const processButton=document.getElementById("processBtn");
+if(processButton){
+  processButton.onclick=processDocument;
+}
+
+const refreshDocumentsButton=
+  document.getElementById("refreshDocuments");
+
+if(refreshDocumentsButton){
+  refreshDocumentsButton.onclick=loadDocuments;
+}
+
+loadTaskTypes();
+loadDocuments();
+
+  const sendButton=document.getElementById("aiSend");
+  if(sendButton){
+    sendButton.onclick=sendAiMessage;
+  }
+
+  const stopButton=document.getElementById("aiStop");
+  if(stopButton){
+    stopButton.onclick=()=>{
+      if(aiAbortController){
+        aiAbortController.abort();
+      }
+    };
+  }
+
+  const aiInput=document.getElementById("aiInput");
+  if(aiInput){
+    aiInput.addEventListener("keydown",event=>{
+      if(event.key==="Enter" && !event.shiftKey){
+        event.preventDefault();
+
+        if(sendButton && !sendButton.disabled){
+          sendAiMessage();
+        }
+      }
+    });
+  }
+
+  const clearButton=document.getElementById("clearChat");
+  if(clearButton){
+    clearButton.onclick=()=>{
+      if(aiAbortController){
+        aiAbortController.abort();
+      }
+
+      chatMessages=[
+        {
+          role:"system",
+          content:`
+          【角色设定】
+你是一位资深应急管理舆情分析师，熟悉安全生产、防灾减灾领域的政策法规，擅长从新闻中提取关键信息并生成结构化报告。
+
+【任务说明】
+请阅读以下新闻文本，提取与应急安全相关的核心信息，生成一份供领导参阅的简报。
+
+【输出要求】
+请按以下结构输出：
+1. 事件概述（一句话概括，不超过50字）
+2. 关键事实（时间、地点、事件类型、伤亡或影响情况）
+3. 官方处置措施
+4. 舆情关注点（公众关切或媒体报道角度）
+5. 工作建议（结合本地实际，2-3条可操作建议）
+
+【约束条件】
+- 只基于提供的新闻内容，不自行补充未经核实的信息
+- 如原文没有明确数据，标注"需核实"
+- 不得将普通事件升级为重大事故描述
+          `
+        }
+      ];
+
+      saveChat();
+
+      const chatLog=document.getElementById("chatLog");
+      if(chatLog){
+        chatLog.textContent="暂无对话";
+      }
+    };
+  }
+
+  document.querySelectorAll(".module").forEach(module=>{
+    module.onclick=()=>{
+      showPage(module.dataset.key);
+    };
+  });
+
+  loadDataCenterTasks();
+
+}
+
+function showPage(key){
+  if(!modules[key]){
+    key="home";
+  }
+
+  current=key;
+
+  document.querySelectorAll(".page").forEach(page=>{
+    page.classList.remove("active");
+  });
+
+  const target=document.getElementById("page-"+key);
+
+  if(target){
+    target.classList.add("active");
+  }
+
+  location.hash=key;
+  renderNav();
+}
+loadChat();
+initPages();
+showPage(current);
+</script>
+</body>
+</html>
