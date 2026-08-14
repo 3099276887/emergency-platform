@@ -1060,6 +1060,12 @@ async function loadDataCenterTasks(){
     list.querySelectorAll("[data-detail-url]").forEach(button=>{
       button.onclick=async()=>{
         const taskElement=button.closest(".data-task");
+        const next=taskElement && taskElement.nextElementSibling;
+
+        if(next && next.classList.contains("data-task-detail")){
+          next.remove();
+          return;
+        }
 
         try{
           const response=await fetch(button.dataset.detailUrl,{
@@ -1146,20 +1152,13 @@ async function loadDataCenterTasks(){
 }
 
 function showDataTaskDetail(detail, taskElement){
-  const old=document.getElementById("dataTaskDetail");
-
-  if(old){
-    old.remove();
-  }
-
   const panel=document.createElement("div");
-  panel.id="dataTaskDetail";
   panel.className="data-task-detail";
 
   panel.innerHTML=`
     <div class="panel-title-row">
       <h2>任务详情</h2>
-      <button class="btn-secondary" id="closeDataDetail">
+      <button class="btn-secondary close-data-detail">
         关闭
       </button>
     </div>
@@ -1187,7 +1186,7 @@ function showDataTaskDetail(detail, taskElement){
     document.getElementById("page-data").appendChild(panel);
   }
 
-  document.getElementById("closeDataDetail").onclick=()=>{
+  panel.querySelector(".close-data-detail").onclick=()=>{
     panel.remove();
   };
 }
