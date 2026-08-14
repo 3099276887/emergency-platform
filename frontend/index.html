@@ -271,11 +271,7 @@ function renderNav(){
     if(key==="law"){
       const lawItems=[
         ["national","国家法律"],
-        ["regulations","规章制度"],
-        ["emergency","应急管理部规章"],
-        ["ministries","其他部委规章"],
-        ["local","地方文件"],
-        ["policy","政策解读"]
+        ["regulations","规章制度"]
       ];
 
       html+=`
@@ -442,11 +438,7 @@ function lawPage(){
 function showLawCategory(category){
   const titles={
     national:"国家法律",
-    regulations:"规章制度",
-    emergency:"应急管理部规章",
-    ministries:"其他部委规章",
-    local:"地方文件",
-    policy:"政策解读"
+    regulations:"规章制度"
   };
 
   const title=document.getElementById("lawTitle");
