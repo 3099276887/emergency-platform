@@ -271,7 +271,8 @@ function renderNav(){
     if(key==="law"){
       const lawItems=[
         ["national","国家法律"],
-        ["regulations","规章制度"]
+        ["administrative","行政法规"],
+        ["local","地方法规"]
       ];
 
       html+=`
@@ -438,7 +439,8 @@ function lawPage(){
 function showLawCategory(category){
   const titles={
     national:"国家法律",
-    regulations:"规章制度"
+    administrative:"行政法规",
+    local:"地方法规"
   };
 
   const title=document.getElementById("lawTitle");
