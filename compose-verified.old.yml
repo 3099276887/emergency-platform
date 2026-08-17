@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     volumes:
       - type: bind
-        source: /data2/www/emergency-platform/frontend
+        source: /opt/emergency-platform/frontend
         target: /usr/share/nginx/html
         read_only: true
         bind: {}
@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
     volumes:
       - type: bind
-        source: /data2/www/emergency-platform/mysql
+        source: /opt/emergency-platform/mysql
         target: /var/lib/mysql
         bind: {}
 networks:
