@@ -421,17 +421,31 @@ function lawPage(){
     <h1>安全法律</h1>
     <p class="desc">查看安全生产、应急管理和消防减灾相关法律法规。</p>
 
-    <section class="panel law-layout">
-      
-      <section class="panel">
+    <section class="panel">
       <h2 id="lawTitle">国家法律</h2>
       <div id="lawList" class="law-list">
         <div class="empty">
-            <strong>暂无真实法律法规数据</strong>
-            <span>接入法律法规接口后，此处显示实际内容。</span>
-          </div>
+          <strong>暂无真实法律法规数据</strong>
+          <span>接入法律法规接口后，此处显示实际内容。</span>
         </div>
       </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2>知识库文件管理</h2>
+        <button id="kbRefreshBtn" class="btn-secondary">刷新</button>
+      </div>
+
+      <div class="field">
+        <label for="kbFileInput">上传 txt 文件</label>
+        <input id="kbFileInput" type="file" accept=".txt,text/plain">
+      </div>
+
+      <button id="kbUploadBtn" class="btn">上传并建立索引</button>
+      <p id="kbStatus" class="note"></p>
+
+      <div id="kbFileList"></div>
     </section>
   `;
 }
@@ -458,6 +472,305 @@ function showLawCategory(category){
       <span>当前分类尚未接入真实数据接口。</span>
     </div>
   `;
+}
+
+function formatFileSize(bytes){
+  const size=Number(bytes)||0;
+
+  if(size>=1048576){
+    return (size/1048576).toFixed(2)+" MB";
+  }
+
+  if(size>=1024){
+    return (size/1024).toFixed(1)+" KB";
+  }
+
+  return size+" B";
+}
+
+function knowledgeFileStatus(status){
+  return {
+    building:"建立中",
+    ready:"就绪",
+    failed:"失败"
+  }[status] || status || "未知";
+}
+
+async function loadKnowledgeFiles(){
+  const list=document.getElementById("kbFileList");
+  const status=document.getElementById("kbStatus");
+
+  if(!list || !status){
+    return;
+  }
+
+  status.textContent="正在加载文件...";
+  status.className="note";
+
+  try{
+    const response=await fetch(API_BASE+"/files",{
+      headers:{"Accept":"application/json"},
+      cache:"no-store"
+    });
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(result));
+    }
+
+    const files=Array.isArray(result) ? result : [];
+
+    if(files.length===0){
+      list.innerHTML=`
+        <div class="empty">
+          <strong>知识库暂无文件</strong>
+          <span>上传 txt 文件后，此处会显示登记与索引状态。</span>
+        </div>
+      `;
+      status.textContent="";
+      return;
+    }
+
+    list.innerHTML=files.map(file=>`
+      <div class="data-task">
+        <div class="data-task-main">
+          <strong>${escapeHtml(file.filename || "未命名文件")}</strong>
+          <span>大小：${escapeHtml(formatFileSize(file.size))}</span>
+          <span>分块数：${escapeHtml(file.chunk_count ?? 0)}</span>
+          <span>更新时间：${escapeHtml(formatTime(file.updated_at) || "—")}</span>
+          ${
+            file.message
+              ? `<span>备注：${escapeHtml(file.message)}</span>`
+              : ""
+          }
+        </div>
+
+        <div class="data-task-actions">
+          <b class="task-status status-${escapeHtml(file.status || "")}">
+            ${escapeHtml(knowledgeFileStatus(file.status))}
+          </b>
+          <button
+            class="btn-secondary"
+            data-kb-view="${escapeHtml(file.filename || "")}"
+          >
+            查看
+          </button>
+          <button
+            class="btn-danger"
+            data-kb-delete="${escapeHtml(file.filename || "")}"
+          >
+            删除
+          </button>
+        </div>
+      </div>
+    `).join("");
+
+    list.querySelectorAll("[data-kb-view]").forEach(button=>{
+      button.onclick=()=>{
+        viewKnowledgeFile(button.dataset.kbView, button);
+      };
+    });
+
+    list.querySelectorAll("[data-kb-delete]").forEach(button=>{
+      button.onclick=()=>{
+        deleteKnowledgeFile(button.dataset.kbDelete, button);
+      };
+    });
+
+    status.textContent=`共 ${files.length} 个文件`;
+    status.className="note success";
+  }catch(error){
+    list.innerHTML="";
+    status.textContent="文件列表加载失败："+error.message;
+    status.className="note error";
+  }
+}
+
+async function uploadKnowledgeFile(){
+  const input=document.getElementById("kbFileInput");
+  const status=document.getElementById("kbStatus");
+  const button=document.getElementById("kbUploadBtn");
+
+  if(!input || !status || !button){
+    return;
+  }
+
+  const file=input.files && input.files[0];
+
+  if(!file){
+    status.textContent="请先选择要上传的 txt 文件";
+    status.className="note error";
+    return;
+  }
+
+  if(!/\.txt$/i.test(file.name)){
+    status.textContent="仅支持上传 .txt 文件";
+    status.className="note error";
+    return;
+  }
+
+  button.disabled=true;
+  button.textContent="正在上传...";
+  status.textContent="正在上传并建立索引...";
+  status.className="note";
+
+  try{
+    const formData=new FormData();
+    formData.append("file",file);
+
+    const response=await fetch(API_BASE+"/files",{
+      method:"POST",
+      headers:{"Accept":"application/json"},
+      body:formData
+    });
+
+    const result=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(result));
+    }
+
+    input.value="";
+    status.textContent=result.message || "上传成功";
+    status.className="note success";
+    loadKnowledgeFiles();
+  }catch(error){
+    status.textContent="上传失败："+error.message;
+    status.className="note error";
+  }finally{
+    button.disabled=false;
+    button.textContent="上传并建立索引";
+  }
+}
+
+async function viewKnowledgeFile(filename, button){
+  const status=document.getElementById("kbStatus");
+
+  if(!filename){
+    return;
+  }
+
+  const row=button && button.closest(".data-task");
+  const next=row && row.nextElementSibling;
+
+  if(next && next.classList.contains("data-task-detail")){
+    next.remove();
+    return;
+  }
+
+  try{
+    const response=await fetch(
+      API_BASE+"/files/"+encodeURIComponent(filename),
+      {
+        headers:{"Accept":"application/json"}
+      }
+    );
+
+    const detail=await response.json();
+
+    if(!response.ok){
+      throw new Error(getErrorMessage(detail));
+    }
+
+    showKnowledgeFileDetail(detail, row);
+  }catch(error){
+    if(status){
+      status.textContent="读取文件失败："+error.message;
+      status.className="note error";
+    }
+  }
+}
+
+function showKnowledgeFileDetail(detail, row){
+  const panel=document.createElement("div");
+  panel.className="data-task-detail";
+
+  panel.innerHTML=`
+    <div class="panel-title-row">
+      <h2>文件详情</h2>
+      <button class="btn-secondary close-kb-detail">关闭</button>
+    </div>
+
+    <p><strong>文件名：</strong>${escapeHtml(detail.filename || "")}</p>
+    <p><strong>大小：</strong>${escapeHtml(formatFileSize(detail.size))}</p>
+    <p><strong>分块数：</strong>${escapeHtml(detail.chunk_count ?? 0)}</p>
+    <p><strong>状态：</strong>${escapeHtml(knowledgeFileStatus(detail.status))}</p>
+    <p><strong>MD5：</strong>${escapeHtml(detail.md5 || "")}</p>
+
+    <pre class="result">${escapeHtml(detail.content || "暂无正文")}</pre>
+  `;
+
+  if(row){
+    row.insertAdjacentElement("afterend", panel);
+  }else{
+    const list=document.getElementById("kbFileList");
+    if(list){
+      list.appendChild(panel);
+    }
+  }
+
+  panel.querySelector(".close-kb-detail").onclick=()=>{
+    panel.remove();
+  };
+}
+
+async function deleteKnowledgeFile(filename, button){
+  if(!filename){
+    return;
+  }
+
+  if(!window.confirm("确定删除文件「"+filename+"」并重建知识库索引吗？")){
+    return;
+  }
+
+  const status=document.getElementById("kbStatus");
+
+  try{
+    if(button){
+      button.disabled=true;
+      button.textContent="删除中...";
+    }
+
+    const response=await fetch(
+      API_BASE+"/files/"+encodeURIComponent(filename),
+      {
+        method:"DELETE",
+        headers:{"Accept":"*/*"}
+      }
+    );
+
+    const text=await response.text();
+    let result={};
+
+    if(text){
+      try{
+        result=JSON.parse(text);
+      }catch(error){
+        result={message:text};
+      }
+    }
+
+    if(!response.ok){
+      throw new Error(
+        result.message ||
+        result.detail ||
+        "删除失败，HTTP "+response.status
+      );
+    }
+
+    loadKnowledgeFiles();
+  }catch(error){
+    if(status){
+      status.textContent="删除失败："+error.message;
+      status.className="note error";
+    }
+
+    if(button){
+      button.disabled=false;
+      button.textContent="删除";
+    }
+  }
 }
 
 function documentsPage(){
@@ -1240,6 +1553,16 @@ if(refreshDocumentsButton){
   refreshDocumentsButton.onclick=loadDocuments;
 }
 
+const kbRefreshButton=document.getElementById("kbRefreshBtn");
+if(kbRefreshButton){
+  kbRefreshButton.onclick=loadKnowledgeFiles;
+}
+
+const kbUploadButton=document.getElementById("kbUploadBtn");
+if(kbUploadButton){
+  kbUploadButton.onclick=uploadKnowledgeFile;
+}
+
 loadTaskTypes();
 loadDocuments();
 
@@ -1353,6 +1676,7 @@ function showPage(key){
 
   if(key==="law"){
     showLawCategory(lawCategory);
+    loadKnowledgeFiles();
   }
 }
 
