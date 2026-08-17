@@ -75,6 +75,27 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
   border-radius:4px;
 }
 
+.kb-filter{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:14px 0;
+}
+
+.kb-filter input,
+.kb-filter select{
+  width:auto;
+  flex:1 1 150px;
+  padding:9px 10px;
+  border:1px solid #cbd7de;
+  border-radius:4px;
+  font:inherit;
+}
+
+.kb-filter button{
+  flex:0 0 auto;
+}
+
 .data-task{
   display:flex;
   justify-content:space-between;
@@ -442,8 +463,25 @@ function lawPage(){
         <input id="kbFileInput" type="file" accept=".txt,text/plain" multiple>
       </div>
 
+      <div class="field">
+        <label for="kbFileTypeInput">文件类型（可选）</label>
+        <input id="kbFileTypeInput" type="text" placeholder="例如：国家法律 / 行政法规 / 地方法规">
+      </div>
+
       <button id="kbUploadBtn" class="btn">上传并建立索引</button>
       <p id="kbStatus" class="note"></p>
+
+      <div class="kb-filter">
+        <input id="kbKeywordInput" type="text" placeholder="按文件名关键字搜索">
+        <input id="kbTypeFilterInput" type="text" placeholder="按类型筛选">
+        <select id="kbStatusFilter">
+          <option value="">全部状态</option>
+          <option value="building">建立中</option>
+          <option value="ready">就绪</option>
+          <option value="failed">失败</option>
+        </select>
+        <button id="kbSearchBtn" class="btn-secondary">查询</button>
+      </div>
 
       <div id="kbFileList"></div>
     </section>
@@ -504,16 +542,41 @@ async function loadKnowledgeFiles(){
     return;
   }
 
+  const keywordInput=document.getElementById("kbKeywordInput");
+  const typeInput=document.getElementById("kbTypeFilterInput");
+  const statusInput=document.getElementById("kbStatusFilter");
+
+  const keyword=keywordInput ? keywordInput.value.trim() : "";
+  const fileType=typeInput ? typeInput.value.trim() : "";
+  const statusValue=statusInput ? statusInput.value : "";
+
+  const params=new URLSearchParams();
+
+  if(keyword){
+    params.set("keyword",keyword);
+  }
+
+  if(fileType){
+    params.set("file_type",fileType);
+  }
+
+  if(statusValue){
+    params.set("status",statusValue);
+  }
+
+  const query=params.toString();
+  const url=API_BASE+"/files"+(query ? "?"+query : "");
+
   status.textContent="正在加载文件...";
   status.className="note";
 
   try{
-    const response=await fetch(API_BASE+"/files",{
+    const response=await fetch(url,{
       headers:{"Accept":"application/json"},
       cache:"no-store"
     });
 
-    const result=await response.json();
+    const result=await readJsonResponse(response);
 
     if(!response.ok){
       throw new Error(getErrorMessage(result));
@@ -536,6 +599,7 @@ async function loadKnowledgeFiles(){
       <div class="data-task">
         <div class="data-task-main">
           <strong>${escapeHtml(file.filename || "未命名文件")}</strong>
+          <span>类型：${escapeHtml(file.file_type || "—")}</span>
           <span>大小：${escapeHtml(formatFileSize(file.size))}</span>
           <span>分块数：${escapeHtml(file.chunk_count ?? 0)}</span>
           <span>更新时间：${escapeHtml(formatTime(file.updated_at) || "—")}</span>
@@ -587,6 +651,26 @@ async function loadKnowledgeFiles(){
   }
 }
 
+function resetKnowledgeFilters(){
+  const keyword=document.getElementById("kbKeywordInput");
+  const type=document.getElementById("kbTypeFilterInput");
+  const status=document.getElementById("kbStatusFilter");
+
+  if(keyword){
+    keyword.value="";
+  }
+
+  if(type){
+    type.value="";
+  }
+
+  if(status){
+    status.value="";
+  }
+
+  loadKnowledgeFiles();
+}
+
 async function readJsonResponse(response){
   const text=await response.text();
 
@@ -607,6 +691,7 @@ async function uploadKnowledgeFile(){
   const input=document.getElementById("kbFileInput");
   const status=document.getElementById("kbStatus");
   const button=document.getElementById("kbUploadBtn");
+  const fileTypeInput=document.getElementById("kbFileTypeInput");
 
   if(!input || !status || !button){
     return;
@@ -636,6 +721,8 @@ async function uploadKnowledgeFile(){
   button.disabled=true;
   button.textContent="正在上传...";
 
+  const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
+
   let successCount=0;
   const failedFiles=[];
 
@@ -649,6 +736,10 @@ async function uploadKnowledgeFile(){
 
       const formData=new FormData();
       formData.append("file",file);
+
+      if(fileType){
+        formData.append("file_type",fileType);
+      }
 
       try{
         const response=await fetch(API_BASE+"/files",{
@@ -744,6 +835,7 @@ function showKnowledgeFileDetail(detail, row){
     </div>
 
     <p><strong>文件名：</strong>${escapeHtml(detail.filename || "")}</p>
+    <p><strong>类型：</strong>${escapeHtml(detail.file_type || "—")}</p>
     <p><strong>大小：</strong>${escapeHtml(formatFileSize(detail.size))}</p>
     <p><strong>分块数：</strong>${escapeHtml(detail.chunk_count ?? 0)}</p>
     <p><strong>状态：</strong>${escapeHtml(knowledgeFileStatus(detail.status))}</p>
@@ -1606,12 +1698,17 @@ if(refreshDocumentsButton){
 
 const kbRefreshButton=document.getElementById("kbRefreshBtn");
 if(kbRefreshButton){
-  kbRefreshButton.onclick=loadKnowledgeFiles;
+  kbRefreshButton.onclick=resetKnowledgeFilters;
 }
 
 const kbUploadButton=document.getElementById("kbUploadBtn");
 if(kbUploadButton){
   kbUploadButton.onclick=uploadKnowledgeFile;
+}
+
+const kbSearchButton=document.getElementById("kbSearchBtn");
+if(kbSearchButton){
+  kbSearchButton.onclick=loadKnowledgeFiles;
 }
 
 loadTaskTypes();
