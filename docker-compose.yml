@@ -1,0 +1,24 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: emergency-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678 
+      MYSQL_DATABASE: emergency
+      MYSQL_USER: emergency_user
+      MYSQL_PASSWORD: 123456 
+    volumes:
+      - ./mysql:/var/lib/mysql
+    ports:
+      - "127.0.0.1:13306:3306"
+
+  frontend:
+    image: nginx:alpine
+    container_name: emergency-frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    ports:
+      - "127.0.0.1:18081:80"

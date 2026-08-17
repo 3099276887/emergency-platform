@@ -1,0 +1,45 @@
+name: emergency-platform
+services:
+  frontend:
+    container_name: emergency-frontend
+    image: nginx:alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 80
+        published: "18081"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /opt/emergency-platform/frontend
+        target: /usr/share/nginx/html
+        read_only: true
+        bind: {}
+  mysql:
+    container_name: emergency-mysql
+    environment:
+      MYSQL_DATABASE: emergency
+      MYSQL_PASSWORD: "123456"
+      MYSQL_ROOT_PASSWORD: "12345678"
+      MYSQL_USER: emergency_user
+    image: mysql:8.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 3306
+        published: "13306"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /opt/emergency-platform/mysql
+        target: /var/lib/mysql
+        bind: {}
+networks:
+  default:
+    name: emergency-platform_default
