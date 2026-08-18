@@ -464,8 +464,13 @@ function lawPage(){
       </div>
 
       <div class="field">
-        <label for="kbFileTypeInput">文件类型（可选）</label>
-        <input id="kbFileTypeInput" type="text" placeholder="例如：国家法律 / 行政法规 / 地方法规">
+        <label for="kbFileTypeInput">文件类型</label>
+        <select id="kbFileTypeInput">
+          <option value="">请选择类型（可选）</option>
+          <option value="国家法律">国家法律</option>
+          <option value="行政法规">行政法规</option>
+          <option value="地方法规">地方法规</option>
+        </select>
       </div>
 
       <button id="kbUploadBtn" class="btn">上传并建立索引</button>
@@ -473,7 +478,12 @@ function lawPage(){
 
       <div class="kb-filter">
         <input id="kbKeywordInput" type="text" placeholder="按文件名关键字搜索">
-        <input id="kbTypeFilterInput" type="text" placeholder="按类型筛选">
+        <select id="kbTypeFilterInput">
+          <option value="">全部类型</option>
+          <option value="国家法律">国家法律</option>
+          <option value="行政法规">行政法规</option>
+          <option value="地方法规">地方法规</option>
+        </select>
         <select id="kbStatusFilter">
           <option value="">全部状态</option>
           <option value="building">建立中</option>
