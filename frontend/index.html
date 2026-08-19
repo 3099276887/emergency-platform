@@ -194,6 +194,7 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 <main id="app">
   <section id="page-home" class="page"></section>
   <section id="page-law" class="page"></section>
+  <section id="page-knowledge" class="page"></section>
   <section id="page-data" class="page"></section>
   <section id="page-documents" class="page"></section>
   <section id="page-ai" class="page"></section>
@@ -204,6 +205,7 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 const modules={
 home:{name:"综合首页",icon:"⌂",desc:"查看平台模块与本机运行信息"},
 law:{name:"安全法律",icon:"法",desc:"查看安全生产、应急管理和消防相关法律法规"},
+knowledge:{name:"知识库",icon:"库",desc:"管理知识库文件：上传、查看、删除与筛选"},
 data:{name:"数据中心",icon:"数",desc:"查看文档处理任务及生成结果"},
 documents:{name:"文档处理",icon:"文",desc:"粘贴文档并生成处理报告"},
 ai:{name:"AI 对话",icon:"AI",desc:"与本地千问模型进行对话"}
@@ -451,6 +453,14 @@ function lawPage(){
         </div>
       </div>
     </section>
+  `;
+}
+
+function knowledgePage(){
+  return `
+    <div class="crumb">当前位置 / 知识库</div>
+    <h1>知识库</h1>
+    <p class="desc">管理知识库文件：上传、查看、删除与筛选。</p>
 
     <section class="panel">
       <div class="panel-title-row">
@@ -1683,6 +1693,7 @@ function formatTime(value){
 function initPages(){
   document.getElementById("page-home").innerHTML=home();
   document.getElementById("page-law").innerHTML=lawPage();
+  document.getElementById("page-knowledge").innerHTML=knowledgePage();
   document.getElementById("page-data").innerHTML=dataCenterPage();
   document.getElementById("page-documents").innerHTML=documentsPage();
   document.getElementById("page-ai").innerHTML=aiPage();
@@ -1834,6 +1845,9 @@ function showPage(key){
 
   if(key==="law"){
     showLawCategory(lawCategory);
+  }
+
+  if(key==="knowledge"){
     loadKnowledgeFiles();
   }
 }
