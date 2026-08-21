@@ -207,8 +207,8 @@ body.side-collapsed aside .law-subnav{display:none}
   display:flex;flex-direction:column;
   height:calc(100vh - 64px - 56px);
   max-height:calc(100vh - 64px - 56px);
-  overflow:hidden;border:1px solid #d9e2e8;border-radius:8px;
-  background:#fff;
+  overflow:hidden;/* 删除卡片边框和阴影，保持与整体背景融合 */
+  background:transparent;
 }
 .chat-top{
   display:flex;align-items:center;justify-content:space-between;
@@ -224,9 +224,21 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px}
 .chat-msg.user .bubble{background:#3975b5;color:#fff;border-top-right-radius:3px}
 .chat-msg.ai .bubble{background:#fff;border:1px solid #dce5ea;border-top-left-radius:3px;color:#233746}
-.chat-input{display:flex;align-items:flex-end;gap:10px;padding:14px 16px;border-top:1px solid #e4ebef;background:#fff}
-.chat-input textarea{flex:1;min-height:52px;max-height:180px;resize:none;border:1px solid #cbd7de;border-radius:10px;padding:12px 14px;line-height:1.6}
-.chat-btn{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:0;border-radius:10px;cursor:pointer}
+/* 输入区：居中、宽度 70%~80%（max 900px），高度 70-90px，圆润浅灰背景 */
+.chat-input{
+  display:flex;align-items:center;gap:10px;
+  width:70%;max-width:900px;margin:0 auto;padding:0;
+  /* 去掉卡片式顶部边框和白底 */
+}
+.chat-input textarea{
+  flex:1;height:80px; /* 70~90px 区间 */
+  border:none;outline:none;
+  border-radius:12px;background:#F5F6F8;box-shadow:0 1px 3px rgba(0,0,0,0.08);
+  padding:12px 14px;line-height:1.6;font-size:15px;
+  resize:none;overflow:auto;
+}
+.chat-btn{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;cursor:pointer;margin-left:-48px;/* 在 textarea 右侧内部叠加 */
+  background:#3975b5;color:#fff}
 .chat-btn svg{width:22px;height:22px;fill:currentColor}
 #aiSend{background:#3975b5;color:#fff}
 #aiSend:disabled{background:#9aaab3;cursor:not-allowed}
