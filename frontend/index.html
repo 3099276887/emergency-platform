@@ -227,10 +227,13 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-msg.ai .bubble{background:#fff;border:1px solid #dce5ea;border-top-left-radius:3px;color:#233746}
 /* 输入区：居中、宽度 70%~80%（max 900px），高度适中，圆润浅灰背景 */
 .chat-input{
-  position:relative;
+  position:sticky;
+  bottom:0;
   display:flex;justify-content:center;align-items:center;
-  width:70%;max-width:900px;margin:0 auto;
-  padding:0;
+  width:70%;max-width:900px;
+  margin:0 auto;
+  padding:12px 0; /* give some vertical padding */
+  background:#fafbfc;
 }
 .chat-input textarea{
   width:100%;height:30px; /* 较为合适的高度 */
