@@ -207,8 +207,8 @@ body.side-collapsed aside .law-subnav{display:none}
   display:flex;flex-direction:column;
   height:calc(100vh - 64px - 56px);
   max-height:calc(100vh - 64px - 56px);
-  overflow:hidden;/* 删除卡片边框和阴影，保持与整体背景融合 */
-  background:transparent;
+  overflow:hidden;
+  background:#f2f5f7; /* 与整体后台背景统一，填满整个右侧区域 */
 }
 .chat-top{
   display:flex;align-items:center;justify-content:space-between;
@@ -221,29 +221,40 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-empty strong{color:#6b7d89;margin-bottom:8px}
 .chat-msg{display:flex;margin:14px 0}
 .chat-msg.user{justify-content:flex-end}
-.chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px}
+.chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .chat-msg.user .bubble{background:#3975b5;color:#fff;border-top-right-radius:3px}
 .chat-msg.ai .bubble{background:#fff;border:1px solid #dce5ea;border-top-left-radius:3px;color:#233746}
-/* 输入区：居中、宽度 70%~80%（max 900px），高度 70-90px，圆润浅灰背景 */
+/* 输入区：居中、宽度 70%~80%（max 900px），高度适中，圆润浅灰背景 */
 .chat-input{
-  display:flex;align-items:center;gap:10px;
-  width:70%;max-width:900px;margin:0 auto;padding:0;
-  /* 去掉卡片式顶部边框和白底 */
+  position:relative;
+  display:flex;justify-content:center;align-items:center;
+  width:70%;max-width:900px;margin:0 auto;
+  padding:0;
 }
 .chat-input textarea{
-  flex:1;height:80px; /* 70~90px 区间 */
-  border:none;outline:none;
+  width:100%;height:60px; /* 较为合适的高度 */
+  border:1px solid #dcdcdc;outline:none;
   border-radius:12px;background:#F5F6F8;box-shadow:0 1px 3px rgba(0,0,0,0.08);
-  padding:12px 14px;line-height:1.6;font-size:15px;
+  padding:10px 48px 10px 14px;line-height:1.6;font-size:15px;
   resize:none;overflow:auto;
 }
-.chat-btn{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;cursor:pointer;margin-left:-48px;/* 在 textarea 右侧内部叠加 */
-  background:#3975b5;color:#fff}
-.chat-btn svg{width:22px;height:22px;fill:currentColor}
-#aiSend{background:#3975b5;color:#fff}
-#aiSend:disabled{background:#9aaab3;cursor:not-allowed}
-#aiStop{background:#c94135;color:#fff;display:none}
+.chat-btn{
+  position:absolute;bottom:8px;right:8px; /* 默认放在右侧 */
+  width:32px;height:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:50%;cursor:pointer;background:#3975b5;color:#fff;
+}
+.chat-btn svg{width:16px;height:16px;fill:currentColor}
+#aiStop{
+  width:28px;height:28px;
+  right:52px;/* 与发送按钮保持间距 */
+  bottom:8px;
+  background:#c94135;
+  display:none;
+}
 #aiStop.show{display:flex}
+#aiSend{background:#3975b5;}
+#aiSend:disabled{background:#9aaab3;cursor:not-allowed}
+
 
 </style>
 </head>
