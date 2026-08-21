@@ -1194,7 +1194,7 @@ function setChatStreamingState(streaming){
 }
 
 let enableRAG = false;
-function sendAiMessage(){
+async function sendAiMessage(){
   aiAbortController = new AbortController();
   const input=document.getElementById("aiInput");
   const log=document.getElementById("chatLog");
