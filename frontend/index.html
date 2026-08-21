@@ -1113,6 +1113,9 @@ function aiPage(){
         <div class="chat-top-right">
           <span id="aiStatus" class="note"></span>
           <button id="clearChat" class="btn-secondary" type="button">新建对话</button>
+          <label style=\"margin-left:8px;display:flex;align-items:center\">
+            <input type=\"checkbox\" id=\"ragToggle\" style=\"margin-right:4px\" />RAG
+          </label>
         </div>
       </div>
 
@@ -1190,7 +1193,8 @@ function setChatStreamingState(streaming){
   }
 }
 
-async function sendAiMessage(){
+let enableRAG = false;
+function sendAiMessage(){
   aiAbortController = new AbortController();
   const input=document.getElementById("aiInput");
   const log=document.getElementById("chatLog");
@@ -1245,7 +1249,8 @@ async function sendAiMessage(){
           messages:getRequestMessages(),
           stream:true,
           temperature:0.7,
-          max_tokens:2048
+          max_tokens:2048,
+          enable_rag: enableRAG
         })
       }
     );
