@@ -181,18 +181,74 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
   display: block;
 }
 
+/* 侧栏收起（窄图标栏） */
+.header-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+#navToggle{
+  display:flex;align-items:center;justify-content:center;
+  width:40px;height:40px;border:0;border-radius:6px;
+  background:rgba(255,255,255,0.14);color:#fff;cursor:pointer;flex:0 0 auto;
+}
+#navToggle:hover{background:rgba(255,255,255,0.26)}
+#navToggle svg{width:20px;height:20px;fill:currentColor}
+aside{transition:width .2s ease}
+main{transition:margin-left .2s ease}
+body.side-collapsed aside{width:64px;padding:16px 6px}
+body.side-collapsed main{margin-left:64px}
+body.side-collapsed aside button{font-size:0;text-align:center;padding:14px 0}
+body.side-collapsed aside button .nav-icon{font-size:20px}
+body.side-collapsed aside .law-subnav{display:none}
+
+/* AI 对话界面 */
+.chat-page{
+  display:flex;flex-direction:column;
+  height:calc(100vh - 64px - 56px);
+  max-height:calc(100vh - 64px - 56px);
+  overflow:hidden;border:1px solid #d9e2e8;border-radius:8px;
+  background:#fff;
+}
+.chat-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-bottom:1px solid #e4ebef;
+}
+.chat-top h2{margin:0;font-size:16px;color:#123b5d}
+.chat-top-right{display:flex;align-items:center;gap:12px}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;background:#f7f9fb}
+.chat-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9fb0bb;text-align:center}
+.chat-empty strong{color:#6b7d89;margin-bottom:8px}
+.chat-msg{display:flex;margin:14px 0}
+.chat-msg.user{justify-content:flex-end}
+.chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px}
+.chat-msg.user .bubble{background:#3975b5;color:#fff;border-top-right-radius:3px}
+.chat-msg.ai .bubble{background:#fff;border:1px solid #dce5ea;border-top-left-radius:3px;color:#233746}
+.chat-input{display:flex;align-items:flex-end;gap:10px;padding:14px 16px;border-top:1px solid #e4ebef;background:#fff}
+.chat-input textarea{flex:1;min-height:52px;max-height:180px;resize:none;border:1px solid #cbd7de;border-radius:10px;padding:12px 14px;line-height:1.6}
+.chat-btn{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:0;border-radius:10px;cursor:pointer}
+.chat-btn svg{width:22px;height:22px;fill:currentColor}
+#aiSend{background:#3975b5;color:#fff}
+#aiSend:disabled{background:#9aaab3;cursor:not-allowed}
+#aiStop{background:#c94135;color:#fff;display:none}
+#aiStop.show{display:flex}
+
 </style>
 </head>
 <body>
 <header>
-<strong>应急安全综合平台</strong>
+<div class="header-left">
+  <button id="navToggle" type="button" title="收起/展开菜单">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+  </button>
+  <strong>应急安全综合平台</strong>
+</div>
 <span>内网设备：192.168.10.101</span>
 </header>
 
 <div class="layout">
 <aside id="nav"></aside>
 <main id="app">
-  <section id="page-home" class="page"></section>
   <section id="page-law" class="page"></section>
   <section id="page-knowledge" class="page"></section>
   <section id="page-data" class="page"></section>
@@ -203,12 +259,11 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 
 <script>
 const modules={
-home:{name:"综合首页",icon:"⌂",desc:"查看平台模块与本机运行信息"},
+ai:{name:"AI 对话",icon:"AI",desc:"与本地千问模型进行对话"},
 law:{name:"安全法律",icon:"法",desc:"查看安全生产、应急管理和消防相关法律法规"},
 knowledge:{name:"知识库",icon:"库",desc:"管理知识库文件：上传、查看、删除与筛选"},
 data:{name:"数据中心",icon:"数",desc:"查看文档处理任务及生成结果"},
-documents:{name:"文档处理",icon:"文",desc:"粘贴文档并生成处理报告"},
-ai:{name:"AI 对话",icon:"AI",desc:"与本地千问模型进行对话"}
+documents:{name:"文档处理",icon:"文",desc:"粘贴文档并生成处理报告"}
 };
 
 const API_BASE="/api/v1";
@@ -218,7 +273,7 @@ let currentDocumentId=null;
 const nav=document.getElementById("nav");
 const app=document.getElementById("app");
 const CHAT_STORAGE_KEY = "emergency_ai_chat_v1";
-let current=location.hash.slice(1)||"home";
+let current=location.hash.slice(1)||"ai";
 let lawCategory="national";
 let documentState = {
   originalText: "",
@@ -261,16 +316,6 @@ function loadChat(){
   }
 }
 
-function getChatHistory(){
-  return chatMessages
-    .filter(message=>message.role!=="system")
-    .map(message=>{
-      const name=message.role==="user"?"用户":"AI";
-      return name+"："+message.content;
-    })
-    .join("\n\n");
-}
-
 function getRequestMessages(){
   const systemMessage=chatMessages.find(
     message=>message.role==="system"
@@ -286,8 +331,9 @@ function getRequestMessages(){
 function renderNav(){
   nav.innerHTML=Object.entries(modules).map(([key,item])=>{
     let html=`
-      <button class="${current===key?"active":""}" data-key="${key}">
-        ${item.icon}　${item.name}
+      <button class="${current===key?"active":""}" data-key="${key}" title="${item.name}">
+        <span class="nav-icon">${item.icon}</span>
+        <span class="nav-label">　${item.name}</span>
       </button>
     `;
 
@@ -371,34 +417,6 @@ function dataCenterPage(){
   `;
 }
 
-
-function home(){
-  const cards=Object.entries(modules)
-    .filter(([key])=>key!=="home")
-    .map(([key,item])=>
-      `<div class="module" data-key="${key}">
-        <h2>${item.name}</h2>
-        <p>${item.desc}</p>
-      </div>`
-    ).join("");
-
-  return `
-    <div class="crumb">当前位置 / 综合首页</div>
-    <h1>平台首页</h1>
-    <p class="desc">本页面不展示演示数据，只显示已确认的系统信息和功能入口。</p>
-
-    <div class="status">
-      <div><label>设备地址</label><b>192.168.10.101</b></div>
-      <div><label>访问方式</label><b>内网 HTTP</b></div>
-      <div><label>数据状态</label><b>等待后端接入</b></div>
-    </div>
-
-    <section class="panel">
-      <h2>功能模块</h2>
-      <div class="modules">${cards}</div>
-    </section>
-  `;
-}
 
 async function loadTaskTypes(){
   const select=document.getElementById("taskType");
@@ -1061,39 +1079,94 @@ function saveDocumentForm(){
 
 function aiPage(){
   return `
-    <div class="crumb">当前位置 / AI 对话</div>
-    <h1>AI 对话</h1>
-    <p class="desc">调用本地 Qwen3.5 模型，数据仅在内网处理。</p>
-
-    <section class="panel">
-      <h2>对话内容</h2>
-      <div id="chatLog" class="result">${
-        getChatHistory() || "暂无对话"
-      }</div>
-
-      <div class="field">
-        <label for="aiInput">输入问题</label>
-        <textarea id="aiInput"
-          style="min-height:120px"
-          placeholder="请输入问题"></textarea>
+    <div class="chat-page">
+      <div class="chat-top">
+        <h2>AI 对话</h2>
+        <div class="chat-top-right">
+          <span id="aiStatus" class="note"></span>
+          <button id="clearChat" class="btn-secondary" type="button">新建对话</button>
+        </div>
       </div>
 
-      <button id="aiSend" class="btn">发送</button>
-      <button id="aiStop" class="btn" type="button" disabled>停止</button>
-      <button id="clearChat" class="btn" type="button">新建对话</button>
-      <span id="aiStatus" class="note"></span>
-    </section>
+      <div id="chatLog" class="chat-messages"></div>
+
+      <div class="chat-input">
+        <textarea
+          id="aiInput"
+          placeholder="请输入问题，Enter 发送，Shift+Enter 换行"
+        ></textarea>
+        <button id="aiStop" class="chat-btn" type="button" title="停止生成">
+          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+        <button id="aiSend" class="chat-btn" type="button" title="发送">
+          <svg viewBox="0 0 24 24"><path d="M2.6 12.5 21 5 13 21l-2.1-7.2L2.6 12.5z"/></svg>
+        </button>
+      </div>
+    </div>
   `;
+}
+
+function renderChat(){
+  const log=document.getElementById("chatLog");
+  if(!log){
+    return;
+  }
+
+  log.innerHTML="";
+
+  const messages=chatMessages.filter(m=>m.role!=="system");
+
+  if(messages.length===0){
+    log.innerHTML=`
+      <div class="chat-empty">
+        <strong>开始对话</strong>
+        <span>请输入问题，与本地 AI 模型交流。</span>
+      </div>
+    `;
+    return;
+  }
+
+  messages.forEach(message=>{
+    const row=document.createElement("div");
+    row.className="chat-msg "+(message.role==="user"?"user":"ai");
+
+    const bubble=document.createElement("div");
+    bubble.className="bubble";
+    bubble.textContent=message.content;
+
+    row.appendChild(bubble);
+    log.appendChild(row);
+  });
+
+  log.scrollTop=log.scrollHeight;
+}
+
+let currentAiBubble = null;
+
+function setChatStreamingState(streaming){
+  const sendButton=document.getElementById("aiSend");
+  const stopButton=document.getElementById("aiStop");
+
+  if(sendButton){
+    sendButton.disabled=streaming;
+  }
+
+  if(stopButton){
+    if(streaming){
+      stopButton.classList.add("show");
+      stopButton.disabled=false;
+    }else{
+      stopButton.classList.remove("show");
+      stopButton.disabled=true;
+    }
+  }
 }
 
 async function sendAiMessage(){
   aiAbortController = new AbortController();
-  const stopButton = document.getElementById("aiStop");
-  stopButton.disabled = false;
   const input=document.getElementById("aiInput");
   const log=document.getElementById("chatLog");
   const status=document.getElementById("aiStatus");
-  const button=document.getElementById("aiSend");
   const content=input.value.trim();
 
   if(!content){
@@ -1102,10 +1175,9 @@ async function sendAiMessage(){
     return;
   }
 
-  button.disabled=true;
-  button.textContent="处理中...";
   status.textContent="正在处理...";
   status.className="note";
+  setChatStreamingState(true);
 
   chatMessages.push({
     role:"user",
@@ -1114,7 +1186,17 @@ async function sendAiMessage(){
 
   saveChat();
 
-  log.textContent=getChatHistory()+"\n\nAI：";
+  // 重建所有气泡，并在末尾追加一个 AI 气泡用于流式输出
+  renderChat();
+
+  const aiRow=document.createElement("div");
+  aiRow.className="chat-msg ai";
+
+  currentAiBubble=document.createElement("div");
+  currentAiBubble.className="bubble";
+
+  aiRow.appendChild(currentAiBubble);
+  log.appendChild(aiRow);
   log.scrollTop=log.scrollHeight;
 
   let fullAnswer="";
@@ -1179,7 +1261,9 @@ async function sendAiMessage(){
 
         if(text){
           fullAnswer+=text;
-          log.textContent+=text;
+          if(currentAiBubble){
+            currentAiBubble.textContent+=text;
+          }
           log.scrollTop=log.scrollHeight;
         }
       }catch(error){
@@ -1227,17 +1311,17 @@ async function sendAiMessage(){
 
   }catch(error){
     if(error.name === "AbortError"){
-    status.textContent = "已停止生成";
-    status.className = "note";
+      status.textContent="已停止生成";
+      status.className="note";
     }else{
-    status.textContent = "请求失败：" + error.message;
-    status.className = "note error";
+      status.textContent="请求失败："+error.message;
+      status.className="note error";
     }
   }finally{
-    button.disabled=false;
-    button.textContent="发送";
-    stopButton.disabled = true;
+    currentAiBubble=null;
+    setChatStreamingState(false);
     aiAbortController = null;
+    renderChat();
   }
 }
 
@@ -1691,7 +1775,6 @@ function formatTime(value){
 }
 
 function initPages(){
-  document.getElementById("page-home").innerHTML=home();
   document.getElementById("page-law").innerHTML=lawPage();
   document.getElementById("page-knowledge").innerHTML=knowledgePage();
   document.getElementById("page-data").innerHTML=dataCenterPage();
@@ -1773,35 +1856,19 @@ loadDocuments();
         {
           role:"system",
           content:`
-          【角色设定】
-你是一位资深应急管理舆情分析师，熟悉安全生产、防灾减灾领域的政策法规，擅长从新闻中提取关键信息并生成结构化报告。
-
-【任务说明】
-请阅读以下新闻文本，提取与应急安全相关的核心信息，生成一份供领导参阅的简报。
-
-【输出要求】
-请按以下结构输出：
-1. 事件概述（一句话概括，不超过50字）
-2. 关键事实（时间、地点、事件类型、伤亡或影响情况）
-3. 官方处置措施
-4. 舆情关注点（公众关切或媒体报道角度）
-5. 工作建议（结合本地实际，2-3条可操作建议）
-
-【约束条件】
-- 只基于提供的新闻内容，不自行补充未经核实的信息
-- 如原文没有明确数据，标注"需核实"
-- 不得将普通事件升级为重大事故描述
+          请严谨、客观地回答问题，避免虚构事实。
           `
         }
       ];
 
       saveChat();
-
-      const chatLog=document.getElementById("chatLog");
-      if(chatLog){
-        chatLog.textContent="暂无对话";
-      }
+      renderChat();
     };
+  }
+
+  const navToggle=document.getElementById("navToggle");
+  if(navToggle){
+    navToggle.onclick=toggleSidebar;
   }
 
   document.querySelectorAll(".module").forEach(module=>{
@@ -1814,9 +1881,25 @@ loadDocuments();
 
 }
 
+const SIDEBAR_KEY="sidebar_collapsed";
+
+function isSidebarCollapsed(){
+  return document.body.classList.contains("side-collapsed");
+}
+
+function applySidebarState(collapsed){
+  document.body.classList.toggle("side-collapsed", collapsed);
+}
+
+function toggleSidebar(){
+  const collapsed=!isSidebarCollapsed();
+  applySidebarState(collapsed);
+  localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0");
+}
+
 function showPage(key){
   if(!modules[key]){
-    key="home";
+    key="ai";
   }
 
   current=key;
@@ -1854,6 +1937,8 @@ function showPage(key){
 
 loadChat();
 initPages();
+applySidebarState(localStorage.getItem(SIDEBAR_KEY)==="1");
+renderChat();
 showPage(current);
 </script>
 </body>
