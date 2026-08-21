@@ -319,7 +319,7 @@ let aiAbortController = null;
 let chatMessages = [
   {
     role: "system",
-    content: "请严谨回答，不得虚构事实。只能依据用户提供的信息回答；无法确认时明确说明。"
+    content: "请严谨回答，不得虚构事实。无法确认时明确说明。"
   }
 ];
 
@@ -1236,7 +1236,7 @@ async function sendAiMessage(){
 
   try{
     const response=await fetch(
-      "/v1/chat/completions",
+      "/api/v1/chat/completions",
       {
         method:"POST",
         headers:{
