@@ -1878,6 +1878,14 @@ loadDocuments();
     });
   }
 
+  const ragToggle=document.getElementById("ragToggle");
+  if(ragToggle){
+    ragToggle.checked=enableRAG;
+    ragToggle.onchange=()=>{
+      enableRAG=ragToggle.checked;
+    };
+  }
+
   const clearButton=document.getElementById("clearChat");
   if(clearButton){
     clearButton.onclick=()=>{
