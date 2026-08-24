@@ -314,6 +314,7 @@ const API_BASE="/api/v1";
 let documentPollTimer=null;
 let currentDocumentId=null;
 let dataCenterTimer=null;
+let dataCenterExpandedId=null;
 const nav=document.getElementById("nav");
 const app=document.getElementById("app");
 const CHAT_STORAGE_KEY = "emergency_ai_chat_v1";
@@ -1898,6 +1899,7 @@ async function loadDataCenterTasks(silent=false){
 
         if(next && next.classList.contains("data-task-detail")){
           next.remove();
+          dataCenterExpandedId=null;
           return;
         }
 
@@ -1912,6 +1914,7 @@ async function loadDataCenterTasks(silent=false){
             throw new Error(getErrorMessage(detail));
           }
 
+          dataCenterExpandedId=detail.id;
           showDataTaskDetail(detail, taskElement);
         }catch(error){
           status.textContent="读取任务失败："+error.message;
@@ -1994,6 +1997,31 @@ list.querySelectorAll(".data-download-format").forEach(select=>{
 
     status.textContent=`共 ${result.total ?? items.length} 条任务`;
     status.className="note success";
+
+    // 轮询刷新后，恢复之前展开的详情面板
+    if(dataCenterExpandedId){
+      const expandedItem=items.find(i=>i.id===dataCenterExpandedId);
+      if(expandedItem){
+        try{
+          const detailUrl=API_BASE+"/documents/"+encodeURIComponent(dataCenterExpandedId);
+          const resp=await fetch(detailUrl,{headers:{"Accept":"application/json"}});
+          const detail=await resp.json();
+          if(resp.ok){
+            const taskRow=list.querySelector(`[data-detail-url="${detailUrl}"]`)?.closest(".data-task");
+            if(taskRow){
+              showDataTaskDetail(detail, taskRow);
+            }
+          }else{
+            dataCenterExpandedId=null;
+          }
+        }catch(_){
+          // 恢复失败就静默清掉状态，下轮不重试
+          dataCenterExpandedId=null;
+        }
+      }else{
+        dataCenterExpandedId=null;
+      }
+    }
   }catch(error){
     list.innerHTML="";
     status.textContent="历史任务加载失败："+error.message;
