@@ -258,6 +258,7 @@ body.side-collapsed aside .law-subnav{display:none}
   display:none;
 }
 #aiStop.show{display:flex}
+#aiStop.playing{background:#2f7452}
 #aiSend{background:#3975b5;}
 #aiSend:disabled{background:#9aaab3;cursor:not-allowed}
 .rag-label{
@@ -1196,10 +1197,22 @@ function setChatStreamingState(streaming){
 
   if(stopButton){
     if(streaming){
+      // 暂停图标
+      stopButton.innerHTML='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+      stopButton.classList.remove("playing");
       stopButton.classList.add("show");
       stopButton.disabled=false;
+      stopButton.title="暂停";
+    }else if(aiPartial){
+      // 播放图标：继续生成
+      stopButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+      stopButton.classList.add("playing");
+      stopButton.classList.add("show");
+      stopButton.disabled=false;
+      stopButton.title="继续生成";
     }else{
       stopButton.classList.remove("show");
+      stopButton.classList.remove("playing");
       stopButton.disabled=true;
     }
   }
@@ -1207,35 +1220,52 @@ function setChatStreamingState(streaming){
 
 let enableRAG = false;
 async function sendAiMessage(){
+  // 点“发送”始终开启新一轮对话
   const ragCheckbox=document.getElementById("ragToggle");
   if(ragCheckbox){ enableRAG=ragCheckbox.checked; }
-  aiAbortController = new AbortController();
   const input=document.getElementById("aiInput");
-  const log=document.getElementById("chatLog");
   const status=document.getElementById("aiStatus");
   const content=input.value.trim();
-  const continuing = aiPartial !== null;
-  aiCleared = false;
 
-  if(!continuing && !content){
+  if(!content){
     status.textContent="请输入问题";
     status.className="note error";
     return;
   }
 
+  aiPartial = null;
+  aiCleared = false;
+
+  chatMessages.push({
+    role:"user",
+    content:content
+  });
+  saveChat();
+
+  await startAiStream(false);
+}
+
+async function resumeAiMessage(){
+  // 点“播放”继续生成已暂停的部分回答
+  const ragCheckbox=document.getElementById("ragToggle");
+  if(ragCheckbox){ enableRAG=ragCheckbox.checked; }
+  aiPartial = null;
+  aiCleared = false;
+  await startAiStream(true);
+}
+
+async function startAiStream(continuing){
+  aiAbortController = new AbortController();
+  const input=document.getElementById("aiInput");
+  const log=document.getElementById("chatLog");
+  const status=document.getElementById("aiStatus");
+
   status.textContent= continuing ? "继续生成..." : "正在处理...";
   status.className="note";
   setChatStreamingState(true);
 
-  if(continuing){
-    aiPartial = null;
-  }else{
-    chatMessages.push({
-      role:"user",
-      content:content
-    });
-    saveChat();
-    // 重建所有气泡，并在末尾追加一个 AI 气泡用于流式输出
+  if(!continuing){
+    // 新一轮对话：重建所有气泡，再新建 AI 气泡用于流式输出
     renderChat();
   }
 
@@ -1381,7 +1411,7 @@ async function sendAiMessage(){
 
   }catch(error){
     if(error.name === "AbortError"){
-      // 保留已生成部分，供下次“继续生成”（新建对话导致的中断除外）
+      // 保留已生成部分，暂停后可通过“播放”继续（新建对话导致的中断除外）
       if(fullAnswer && !aiCleared){
         const last=chatMessages[chatMessages.length-1];
         if(continuing && last && last.role==="assistant"){
@@ -1911,7 +1941,9 @@ loadDocuments();
   if(stopButton){
     stopButton.onclick=()=>{
       if(aiAbortController){
-        aiAbortController.abort();
+        aiAbortController.abort(); // 暂停
+      }else if(aiPartial){
+        resumeAiMessage();         // 继续
       }
     };
   }
