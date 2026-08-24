@@ -225,7 +225,7 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-msg.user{justify-content:flex-end}
 .chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .chat-msg.user .bubble{background:#3975b5;color:#fff;border-top-right-radius:3px}
-.chat-msg.ai .bubble{background:#fff;border:1px solid #dce5ea;border-top-left-radius:3px;color:#233746}
+.chat-msg.ai .bubble{background:transparent;border:none;border-radius:5px;color:#233746;max-width:70%;width:100%;margin:0 auto;text-align:center}
 /* 输入区：居中、宽度 70%~80%（max 900px），高度适中，圆润浅灰背景 */
 .chat-input{
   position:sticky;
@@ -237,7 +237,7 @@ body.side-collapsed aside .law-subnav{display:none}
   background:#fafbfc;
 }
 .chat-input textarea{
-  width:100%;height:30px; /* 较为合适的高度 */
+  width:100%;height:20px; /* 较为合适的高度 */
   border:1px solid #dcdcdc;outline:none;
   border-radius:12px;background:#F5F6F8;box-shadow:0 1px 3px rgba(0,0,0,0.08);
   padding:10px 48px 10px 14px;line-height:1.6;font-size:15px;
