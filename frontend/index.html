@@ -216,13 +216,6 @@ body.side-collapsed aside .law-subnav{display:none}
   background:transparent;
   margin:-28px;
 }
-.chat-top{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 18px;
-  background:#eef2f5;flex-shrink:0;
-}
-.chat-top h2{margin:0;font-size:16px;color:#123b5d}
-.chat-top-right{display:flex;align-items:center;gap:12px}
 .chat-messages{flex:1;overflow-y:auto;padding:8px 0 130px;background:transparent;scrollbar-width:none}
 .chat-messages::-webkit-scrollbar{display:none}
 .chat-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#9fb0bb;text-align:center}
@@ -267,6 +260,10 @@ body.side-collapsed aside .law-subnav{display:none}
 #aiStop.playing{background:#2f7452}
 #aiSend{background:#3975b5;}
 #aiSend:disabled{background:#9aaab3;cursor:not-allowed}
+.chat-btn-clear{
+  right:82px;background:#9aaab3;
+}
+.chat-btn-clear:hover{background:#6b7d89}
 .rag-label{
   position:absolute;left:12px;bottom:6px;
   display:flex;align-items:center;gap:5px;
@@ -1180,14 +1177,6 @@ function saveDocumentForm(){
 function aiPage(){
   return `
     <div class="chat-page">
-      <div class="chat-top">
-        <h2>AI 对话</h2>
-        <div class="chat-top-right">
-          <span id="aiStatus" class="note"></span>
-          <button id="clearChat" class="btn-secondary" type="button">新建对话</button>
-        </div>
-      </div>
-
       <div id="chatLog" class="chat-messages"></div>
 
       <div class="chat-input">
@@ -1196,6 +1185,9 @@ function aiPage(){
             id="aiInput"
             placeholder="请输入问题，Enter 发送，Shift+Enter 换行"
           ></textarea>
+          <button id="clearChat" class="chat-btn chat-btn-clear" type="button" title="新建对话">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
           <button id="aiStop" class="chat-btn" type="button" title="停止生成">
             <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
           </button>
@@ -1287,12 +1279,9 @@ async function sendAiMessage(){
   const ragCheckbox=document.getElementById("ragToggle");
   if(ragCheckbox){ enableRAG=ragCheckbox.checked; }
   const input=document.getElementById("aiInput");
-  const status=document.getElementById("aiStatus");
   const content=input.value.trim();
 
   if(!content){
-    status.textContent="请输入问题";
-    status.className="note error";
     return;
   }
 
@@ -1322,10 +1311,7 @@ async function startAiStream(continuing){
   aiAbortController = new AbortController();
   const input=document.getElementById("aiInput");
   const log=document.getElementById("chatLog");
-  const status=document.getElementById("aiStatus");
 
-  status.textContent= continuing ? "继续生成..." : "正在处理...";
-  status.className="note";
   setChatStreamingState(true);
 
   if(!continuing){
@@ -1467,9 +1453,6 @@ async function startAiStream(continuing){
 
     saveChat();
 
-    status.textContent="处理完成";
-    status.className="note success";
-
   }catch(error){
     if(error.name === "AbortError"){
       // 保留已生成部分，暂停后可通过“播放”继续（新建对话导致的中断除外）
@@ -1486,11 +1469,6 @@ async function startAiStream(continuing){
         saveChat();
         aiPartial=fullAnswer;
       }
-      status.textContent="已停止生成";
-      status.className="note";
-    }else{
-      status.textContent="请求失败："+error.message;
-      status.className="note error";
     }
   }finally{
     currentAiBubble=null;
