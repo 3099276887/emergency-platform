@@ -239,7 +239,7 @@ body.side-collapsed aside .law-subnav{display:none}
   position:relative;
 }
 .chat-input textarea{
-  display:block;width:100%;height:80px;min-height:0;
+  display:block;width:100%;height:100px;min-height:0;
   border:1px solid #dcdcdc;outline:none;
   border-radius:12px;background:#F5F6F8;box-shadow:0 1px 3px rgba(0,0,0,0.08);
   padding:9px 52px 24px 14px;line-height:1.6;font-size:15px;
@@ -252,8 +252,8 @@ body.side-collapsed aside .law-subnav{display:none}
 }
 .chat-btn svg{width:15px;height:15px;fill:currentColor}
 #aiStop{
-  width:26px;height:26px;
-  right:42px;/* 与发送按钮保持间距 */
+  width:30px;height:30px;
+  right:44px;/* 与发送按钮保持间距 */
   background:#c94135;
   display:none;
 }
@@ -1183,6 +1183,8 @@ function renderChat(){
 }
 
 let currentAiBubble = null;
+let aiPartial = null; // 停止生成时保留的部分回答，用于“继续生成”
+let aiCleared = false; // 新建对话导致的中断，不保留部分回答
 
 function setChatStreamingState(streaming){
   const sendButton=document.getElementById("aiSend");
@@ -1212,38 +1214,54 @@ async function sendAiMessage(){
   const log=document.getElementById("chatLog");
   const status=document.getElementById("aiStatus");
   const content=input.value.trim();
+  const continuing = aiPartial !== null;
+  aiCleared = false;
 
-  if(!content){
+  if(!continuing && !content){
     status.textContent="请输入问题";
     status.className="note error";
     return;
   }
 
-  status.textContent="正在处理...";
+  status.textContent= continuing ? "继续生成..." : "正在处理...";
   status.className="note";
   setChatStreamingState(true);
 
-  chatMessages.push({
-    role:"user",
-    content:content
-  });
+  if(continuing){
+    aiPartial = null;
+  }else{
+    chatMessages.push({
+      role:"user",
+      content:content
+    });
+    saveChat();
+    // 重建所有气泡，并在末尾追加一个 AI 气泡用于流式输出
+    renderChat();
+  }
 
-  saveChat();
-
-  // 重建所有气泡，并在末尾追加一个 AI 气泡用于流式输出
-  renderChat();
-
-  const aiRow=document.createElement("div");
-  aiRow.className="chat-msg ai";
-
-  currentAiBubble=document.createElement("div");
-  currentAiBubble.className="bubble";
-
-  aiRow.appendChild(currentAiBubble);
-  log.appendChild(aiRow);
+  // 续写时复用上一条 AI 气泡，否则新建一个
+  if(continuing){
+    const aiBubbles=log.querySelectorAll(".chat-msg.ai .bubble");
+    currentAiBubble=aiBubbles.length ? aiBubbles[aiBubbles.length-1] : null;
+    if(!currentAiBubble){
+      const aiRow=document.createElement("div");
+      aiRow.className="chat-msg ai";
+      currentAiBubble=document.createElement("div");
+      currentAiBubble.className="bubble";
+      aiRow.appendChild(currentAiBubble);
+      log.appendChild(aiRow);
+    }
+  }else{
+    const aiRow=document.createElement("div");
+    aiRow.className="chat-msg ai";
+    currentAiBubble=document.createElement("div");
+    currentAiBubble.className="bubble";
+    aiRow.appendChild(currentAiBubble);
+    log.appendChild(aiRow);
+  }
   log.scrollTop=log.scrollHeight;
 
-  let fullAnswer="";
+  let fullAnswer= continuing ? (currentAiBubble ? currentAiBubble.textContent : "") : "";
   let buffer="";
 
   try{
@@ -1343,19 +1361,40 @@ async function sendAiMessage(){
       handleLine(buffer);
     }
 
-    chatMessages.push({
-      role:"assistant",
-      content:fullAnswer
-    });
+    const last=chatMessages[chatMessages.length-1];
+    if(continuing && last && last.role==="assistant"){
+      last.content=fullAnswer;
+    }else{
+      chatMessages.push({
+        role:"assistant",
+        content:fullAnswer
+      });
+    }
 
     saveChat();
 
     input.value="";
+    input.focus();
+    input.select();
     status.textContent="处理完成";
     status.className="note success";
 
   }catch(error){
     if(error.name === "AbortError"){
+      // 保留已生成部分，供下次“继续生成”（新建对话导致的中断除外）
+      if(fullAnswer && !aiCleared){
+        const last=chatMessages[chatMessages.length-1];
+        if(continuing && last && last.role==="assistant"){
+          last.content=fullAnswer;
+        }else{
+          chatMessages.push({
+            role:"assistant",
+            content:fullAnswer
+          });
+        }
+        saveChat();
+        aiPartial=fullAnswer;
+      }
       status.textContent="已停止生成";
       status.className="note";
     }else{
@@ -1902,8 +1941,11 @@ loadDocuments();
   if(clearButton){
     clearButton.onclick=()=>{
       if(aiAbortController){
+        aiCleared = true;
         aiAbortController.abort();
       }
+
+      aiPartial = null;
 
       chatMessages=[
         {
