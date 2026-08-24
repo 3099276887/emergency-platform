@@ -239,10 +239,10 @@ body.side-collapsed aside .law-subnav{display:none}
   position:relative;
 }
 .chat-input textarea{
-  display:block;width:100%;height:26px;min-height:0;
+  display:block;width:100%;height:46px;min-height:0;
   border:1px solid #dcdcdc;outline:none;
   border-radius:12px;background:#F5F6F8;box-shadow:0 1px 3px rgba(0,0,0,0.08);
-  padding:7px 52px 7px 14px;line-height:1.6;font-size:15px;
+  padding:9px 52px 24px 14px;line-height:1.6;font-size:15px;
   resize:none;overflow:auto;
 }
 .chat-btn{
@@ -261,8 +261,8 @@ body.side-collapsed aside .law-subnav{display:none}
 #aiSend{background:#3975b5;}
 #aiSend:disabled{background:#9aaab3;cursor:not-allowed}
 .rag-label{
+  position:absolute;left:12px;bottom:6px;
   display:flex;align-items:center;gap:5px;
-  margin-top:6px;
   color:#6b7d89;font-size:13px;cursor:pointer;
   user-select:none;
 }
@@ -1138,10 +1138,10 @@ function aiPage(){
           <button id="aiSend" class="chat-btn" type="button" title="发送">
             <svg viewBox="0 0 24 24"><path d="M2.6 12.5 21 5 13 21l-2.1-7.2L2.6 12.5z"/></svg>
           </button>
+          <label class="rag-label">
+            <input type="checkbox" id="ragToggle" />RAG
+          </label>
         </div>
-        <label class="rag-label">
-          <input type="checkbox" id="ragToggle" />RAG
-        </label>
       </div>
     </div>
   `;
