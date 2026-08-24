@@ -314,7 +314,6 @@ const API_BASE="/api/v1";
 let documentPollTimer=null;
 let currentDocumentId=null;
 let dataCenterTimer=null;
-let dataCenterExpandedId=null;
 const nav=document.getElementById("nav");
 const app=document.getElementById("app");
 const CHAT_STORAGE_KEY = "emergency_ai_chat_v1";
@@ -1822,7 +1821,28 @@ async function loadDataCenterTasks(silent=false){
       return;
     }
 
-    list.innerHTML=items.map(item=>{
+    // 轮询(silent)模式：先检查现有行的ID集合是否一致；
+    // 若一致则逐行diff更新，避免重建DOM导致详情面板消失/闪烁
+    if(silent){
+      const existingRows=list.querySelectorAll(":scope > .data-task");
+      const existingIds=Array.from(existingRows).map(row=>{
+        const del=row.querySelector("[data-delete-id]");
+        return del ? del.dataset.deleteId : null;
+      }).filter(Boolean);
+      const newIds=items.map(i=>String(i.id));
+      const sameIds=
+        existingIds.length===newIds.length &&
+        existingIds.every((id,idx)=>id===newIds[idx]);
+
+      if(sameIds && existingRows.length>0){
+        patchDataCenterRows(items, existingRows, status);
+        status.textContent=`共 ${result.total ?? items.length} 条任务`;
+        status.className="note success";
+        return;
+      }
+    }
+
+    const taskHtml=items.map(item=>{
       const stateName={
         pending:"排队中",
         processing:"处理中",
@@ -1890,143 +1910,202 @@ async function loadDataCenterTasks(silent=false){
       `;
     }).join("");
 
+    list.innerHTML=taskHtml;
     status.textContent="";
 
-    list.querySelectorAll("[data-detail-url]").forEach(button=>{
-      button.onclick=async()=>{
-        const taskElement=button.closest(".data-task");
-        const next=taskElement && taskElement.nextElementSibling;
-
-        if(next && next.classList.contains("data-task-detail")){
-          next.remove();
-          dataCenterExpandedId=null;
-          return;
-        }
-
-        try{
-          const response=await fetch(button.dataset.detailUrl,{
-            headers:{"Accept":"application/json"}
-          });
-
-          const detail=await response.json();
-
-          if(!response.ok){
-            throw new Error(getErrorMessage(detail));
-          }
-
-          dataCenterExpandedId=detail.id;
-          showDataTaskDetail(detail, taskElement);
-        }catch(error){
-          status.textContent="读取任务失败："+error.message;
-          status.className="note error";
-        }
-      };
-    });
-
-    list.querySelectorAll("[data-delete-id]").forEach(button=>{
-      button.onclick=async()=>{
-        const id=button.dataset.deleteId;
-
-        if(!window.confirm("确定删除这条任务及其生成文档吗？")){
-          return;
-        }
-
-        try{
-          button.disabled=true;
-          button.textContent="删除中...";
-
-          const response=await fetch(
-           API_BASE+"/documents/"+encodeURIComponent(id),
-            {
-             method:"DELETE",
-             headers:{
-                "Accept":"*/*"
-             }
-            }
-          );
-
-      const text=await response.text();
-      let result={};
-
-      if(text){
-        try{
-          result=JSON.parse(text);
-        }catch(error){
-          result={message:text};
-        }
-      }
-
-      if(!response.ok){
-        throw new Error(
-          result.message ||
-          result.detail ||
-          "删除失败，HTTP "+response.status
-        );
-      }
-
-      loadDataCenterTasks();
-    }catch(error){
-      const status=document.getElementById("dataStatus");
-
-      if(status){
-        status.textContent="删除失败："+error.message;
-        status.className="note error";
-      }
-
-      button.disabled=false;
-      button.textContent="删除";
-    }
-  };
-});
-
-// 绑定下载格式选择器变化事件
-list.querySelectorAll(".data-download-format").forEach(select=>{
-  select.onchange=function(){
-    const id=this.dataset.docId;
-    const fmt=this.value;
-    const link=this.nextElementSibling;
-    if(link && link.tagName.toLowerCase()==="a"){
-      link.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt;
-      // 更新下载文件名
-      const item=items.find(i=>i.id===id);
-      const baseName=item?.output_filename || "分析报告";
-      link.download=baseName+(fmt==="docx"?".docx":".md");
-    }
-  };
-});
-
-    status.textContent=`共 ${result.total ?? items.length} 条任务`;
-    status.className="note success";
-
-    // 轮询刷新后，恢复之前展开的详情面板
-    if(dataCenterExpandedId){
-      const expandedItem=items.find(i=>i.id===dataCenterExpandedId);
-      if(expandedItem){
-        try{
-          const detailUrl=API_BASE+"/documents/"+encodeURIComponent(dataCenterExpandedId);
-          const resp=await fetch(detailUrl,{headers:{"Accept":"application/json"}});
-          const detail=await resp.json();
-          if(resp.ok){
-            const taskRow=list.querySelector(`[data-detail-url="${detailUrl}"]`)?.closest(".data-task");
-            if(taskRow){
-              showDataTaskDetail(detail, taskRow);
-            }
-          }else{
-            dataCenterExpandedId=null;
-          }
-        }catch(_){
-          // 恢复失败就静默清掉状态，下轮不重试
-          dataCenterExpandedId=null;
-        }
-      }else{
-        dataCenterExpandedId=null;
-      }
-    }
+    bindDataCenterRowEvents(list, items, status);
   }catch(error){
     list.innerHTML="";
     status.textContent="历史任务加载失败："+error.message;
     status.className="note error";
   }
+}
+
+const _STATE_NAMES={
+  pending:"排队中",
+  processing:"处理中",
+  completed:"已完成",
+  failed:"失败"
+};
+
+function patchDataCenterRows(items, existingRows, statusEl){
+  // 轮询模式下，逐行更新可变字段（状态文字、完成时间、下载区），
+  // 不重建行元素，从而保留详情面板、不产生闪烁。
+  for(let idx=0; idx<items.length; idx++){
+    const item=items[idx];
+    const row=existingRows[idx];
+    if(!row) continue;
+
+    // 1. 状态徽章：class + 文字
+    const statusBadge=row.querySelector(":scope > .data-task-actions > .task-status");
+    if(statusBadge){
+      statusBadge.className="task-status status-"+(item.status || "");
+      statusBadge.textContent=_STATE_NAMES[item.status] || item.status || "未知";
+    }
+
+    // 2. 完成时间
+    const main=row.querySelector(":scope > .data-task-main");
+    if(main){
+      const spans=main.querySelectorAll("span");
+      // spans 顺序固定：任务类型、创建时间、完成时间
+      const completedSpan=spans.length>=3 ? spans[2] : null;
+      if(completedSpan){
+        completedSpan.textContent="完成时间："+(formatTime(item.completed_at) || "未完成");
+      }
+    }
+
+    // 3. 下载区：仅当状态是 completed 时出现/保留
+    const actions=row.querySelector(":scope > .data-task-actions");
+    let downloadWrap=actions ? actions.querySelector(":scope > div") : null;
+
+    if(item.status==="completed"){
+      const downloadUrl=
+        API_BASE+"/documents/"+encodeURIComponent(item.id)+"/download";
+      if(!downloadWrap){
+        // 从 pending/processing 变为 completed：补上下载控件
+        downloadWrap=document.createElement("div");
+        downloadWrap.style.cssText="display:flex;align-items:center;gap:4px;white-space:nowrap";
+        downloadWrap.innerHTML=`
+          <select class="data-download-format" data-doc-id="${escapeHtml(item.id)}" style="padding:4px 6px;border:1px solid #cbd7de;border-radius:4px;font-size:13px;font:inherit">
+            <option value="md">.md</option>
+            <option value="docx">.docx</option>
+          </select>
+          <a class="download" href="${escapeHtml(downloadUrl)}?format=md" download style="margin:0">下载</a>
+        `;
+        actions.appendChild(downloadWrap);
+        // 绑定刚创建的 select 的 onchange
+        const selectEl=downloadWrap.querySelector(".data-download-format");
+        if(selectEl){
+          selectEl.onchange=function(){
+            const fmt=this.value;
+            const link=this.nextElementSibling;
+            if(link && link.tagName.toLowerCase()==="a"){
+              link.href=API_BASE+"/documents/"+encodeURIComponent(item.id)+"/download?format="+fmt;
+              const baseName=item.output_filename || "分析报告";
+              link.download=baseName+(fmt==="docx"?".docx":".md");
+            }
+          };
+        }
+      }else{
+        // 已存在：确保链接的 download 文件名最新
+        const selectEl=downloadWrap.querySelector(".data-download-format");
+        const linkEl=downloadWrap.querySelector("a.download");
+        const fmt=selectEl ? (selectEl.value || "md") : "md";
+        if(linkEl){
+          linkEl.href=downloadUrl+"?format="+fmt;
+          const baseName=item.output_filename || "分析报告";
+          linkEl.download=baseName+(fmt==="docx"?".docx":".md");
+        }
+      }
+    }else{
+      // 非 completed 状态：移除下载区（防止中途失败的 case 残留下载链接）
+      if(downloadWrap){
+        downloadWrap.remove();
+      }
+    }
+  }
+}
+
+function bindDataCenterRowEvents(list, items, status){
+  list.querySelectorAll("[data-detail-url]").forEach(button=>{
+    button.onclick=async()=>{
+      const taskElement=button.closest(".data-task");
+      const next=taskElement && taskElement.nextElementSibling;
+
+      if(next && next.classList.contains("data-task-detail")){
+        next.remove();
+        return;
+      }
+
+      try{
+        const response=await fetch(button.dataset.detailUrl,{
+          headers:{"Accept":"application/json"}
+        });
+
+        const detail=await response.json();
+
+        if(!response.ok){
+          throw new Error(getErrorMessage(detail));
+        }
+
+        showDataTaskDetail(detail, taskElement);
+      }catch(error){
+        status.textContent="读取任务失败："+error.message;
+        status.className="note error";
+      }
+    };
+  });
+
+  list.querySelectorAll("[data-delete-id]").forEach(button=>{
+    button.onclick=async()=>{
+      const id=button.dataset.deleteId;
+
+      if(!window.confirm("确定删除这条任务及其生成文档吗？")){
+        return;
+      }
+
+      try{
+        button.disabled=true;
+        button.textContent="删除中...";
+
+        const response=await fetch(
+         API_BASE+"/documents/"+encodeURIComponent(id),
+          {
+           method:"DELETE",
+           headers:{
+              "Accept":"*/*"
+           }
+          }
+        );
+
+        const text=await response.text();
+        let result={};
+
+        if(text){
+          try{
+            result=JSON.parse(text);
+          }catch(error){
+            result={message:text};
+          }
+        }
+
+        if(!response.ok){
+          throw new Error(
+            result.message ||
+            result.detail ||
+            "删除失败，HTTP "+response.status
+          );
+        }
+
+        loadDataCenterTasks();
+      }catch(error){
+        const status=document.getElementById("dataStatus");
+
+        if(status){
+          status.textContent="删除失败："+error.message;
+          status.className="note error";
+        }
+
+        button.disabled=false;
+        button.textContent="删除";
+      }
+    };
+  });
+
+  // 绑定下载格式选择器变化事件
+  list.querySelectorAll(".data-download-format").forEach(select=>{
+    select.onchange=function(){
+      const id=this.dataset.docId;
+      const fmt=this.value;
+      const link=this.nextElementSibling;
+      if(link && link.tagName.toLowerCase()==="a"){
+        link.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt;
+        const item=items.find(i=>String(i.id)===String(id));
+        const baseName=item?.output_filename || "分析报告";
+        link.download=baseName+(fmt==="docx"?".docx":".md");
+      }
+    };
+  });
 }
 
 function startDataCenterPolling(){
