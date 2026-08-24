@@ -1092,14 +1092,20 @@ function documentsPage(){
         escapeHtml(documentState.result || "尚未提交任务")
       }</pre>
 
-      <a
-        id="downloadLink"
-        class="download"
-        href="${escapeHtml(documentState.downloadUrl || "")}"
-        ${documentState.downloadUrl ? "" : "hidden"}
-      >
-        下载生成文档
-      </a>
+      <div id="downloadArea" class="btn-group" style="margin-top:12px;flex-wrap:wrap" ${documentState.downloadUrl ? "" : "hidden"}>
+        <select id="downloadFormatSelect" style="padding:8px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit">
+          <option value="md">Markdown (.md)</option>
+          <option value="docx">Word 文档 (.docx)</option>
+        </select>
+        <a
+          id="downloadLink"
+          class="download"
+          href="${escapeHtml(documentState.downloadUrl || "")}"
+          style="margin:0"
+        >
+          下载生成文档
+        </a>
+      </div>
     </section>
 
     <section class="panel">
@@ -1437,7 +1443,6 @@ async function startAiStream(continuing){
 
     saveChat();
 
-    input.value="";
     status.textContent="处理完成";
     status.className="note success";
 
