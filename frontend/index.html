@@ -66,6 +66,12 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
   gap:16px;
 }
 
+.btn-group{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
 .btn-secondary{
   padding:8px 14px;
   border:1px solid #9fb4c2;
@@ -307,6 +313,7 @@ const API_BASE="/api/v1";
 
 let documentPollTimer=null;
 let currentDocumentId=null;
+let dataCenterTimer=null;
 const nav=document.getElementById("nav");
 const app=document.getElementById("app");
 const CHAT_STORAGE_KEY = "emergency_ai_chat_v1";
@@ -363,6 +370,26 @@ function getRequestMessages(){
     .slice(-20);
 
   return [systemMessage,...history];
+}
+
+function getContinueRequestMessages(){
+  // 续写时：保留已生成的部分回答作为上下文，并显式指示模型“继续”，避免其重新开始
+  const systemMessage=chatMessages.find(
+    message=>message.role==="system"
+  );
+
+  const history=chatMessages
+    .filter(message=>message.role!=="system")
+    .slice(-20);
+
+  return [
+    ...(systemMessage ? [systemMessage] : []),
+    ...history,
+    {
+      role:"user",
+      content:"请接着上面我的回答继续往下写，从最后一个字之后接着写，不要重复、不要重新开始。"
+    }
+  ];
 }
 
 function renderNav(){
@@ -445,7 +472,10 @@ function dataCenterPage(){
     <section class="panel">
       <div class="panel-title-row">
         <h2>历史任务</h2>
-        <button id="dataRefreshBtn" class="btn-secondary">刷新</button>
+        <div class="btn-group">
+          <button id="dataPauseBtn" class="btn-secondary" disabled>暂停</button>
+          <button id="dataRefreshBtn" class="btn-secondary">刷新</button>
+        </div>
       </div>
 
       <p id="dataStatus" class="note">正在加载任务...</p>
@@ -1075,9 +1105,12 @@ function documentsPage(){
     <section class="panel">
       <div class="panel-title-row">
         <h2>历史任务</h2>
-        <button id="refreshDocuments" class="btn-secondary">
-          刷新
-        </button>
+        <div class="btn-group">
+          <button id="docPauseBtn" class="btn-secondary" disabled>暂停</button>
+          <button id="refreshDocuments" class="btn-secondary">
+            刷新
+          </button>
+        </div>
       </div>
 
       <div id="documentList">
@@ -1242,6 +1275,7 @@ async function sendAiMessage(){
   });
   saveChat();
 
+  input.value=""; // 点击发送后立即清空输入框
   await startAiStream(false);
 }
 
@@ -1306,7 +1340,7 @@ async function startAiStream(continuing){
         signal: aiAbortController.signal,
         body:JSON.stringify({
           model:"tpu-qwen3.5",
-          messages:getRequestMessages(),
+          messages: continuing ? getContinueRequestMessages() : getRequestMessages(),
           stream:true,
           temperature:0.7,
           max_tokens:2048,
@@ -1504,8 +1538,16 @@ async function processDocument(){
 }
 
 function startDocumentPolling(id){
+  currentDocumentId=id;
+
   if(documentPollTimer){
     clearInterval(documentPollTimer);
+  }
+
+  const pauseBtn=document.getElementById("docPauseBtn");
+  if(pauseBtn){
+    pauseBtn.disabled=false;
+    pauseBtn.textContent="暂停";
   }
 
   checkDocumentStatus(id);
@@ -1513,6 +1555,35 @@ function startDocumentPolling(id){
   documentPollTimer=setInterval(()=>{
     checkDocumentStatus(id);
   },3000);
+}
+
+function toggleDocumentPolling(){
+  const pauseBtn=document.getElementById("docPauseBtn");
+
+  if(!currentDocumentId){
+    return;
+  }
+
+  if(documentPollTimer){
+    clearInterval(documentPollTimer);
+    documentPollTimer=null;
+
+    if(pauseBtn){
+      pauseBtn.textContent="继续";
+    }
+
+    const status=document.getElementById("documentStatus");
+    if(status){
+      status.textContent="已暂停轮询，任务仍在后端处理，点击「继续」恢复查看进度";
+      status.className="note";
+    }
+    return;
+  }
+
+  if(pauseBtn){
+    pauseBtn.textContent="暂停";
+  }
+  startDocumentPolling(currentDocumentId);
 }
 
 async function checkDocumentStatus(id){
@@ -1536,6 +1607,12 @@ async function checkDocumentStatus(id){
       clearInterval(documentPollTimer);
       documentPollTimer=null;
 
+      const pauseBtn=document.getElementById("docPauseBtn");
+      if(pauseBtn){
+        pauseBtn.disabled=true;
+        pauseBtn.textContent="暂停";
+      }
+
       status.textContent="处理完成";
       status.className="note success";
       resultBox.textContent=result.report_content || "后端未返回报告内容";
@@ -1555,6 +1632,12 @@ async function checkDocumentStatus(id){
       clearInterval(documentPollTimer);
       documentPollTimer=null;
 
+      const pauseBtn=document.getElementById("docPauseBtn");
+      if(pauseBtn){
+        pauseBtn.disabled=true;
+        pauseBtn.textContent="暂停";
+      }
+
       status.textContent="处理失败";
       status.className="note error";
       resultBox.textContent=result.report_content || "后端未返回失败原因";
@@ -1571,6 +1654,12 @@ async function checkDocumentStatus(id){
   }catch(error){
     clearInterval(documentPollTimer);
     documentPollTimer=null;
+
+    const pauseBtn=document.getElementById("docPauseBtn");
+    if(pauseBtn){
+      pauseBtn.disabled=true;
+      pauseBtn.textContent="暂停";
+    }
 
     status.textContent="查询失败："+error.message;
     status.className="note error";
@@ -1621,7 +1710,7 @@ async function loadDocuments(){
   }
 }
 
-async function loadDataCenterTasks(){
+async function loadDataCenterTasks(silent=false){
   const list=document.getElementById("dataTaskList");
   const status=document.getElementById("dataStatus");
 
@@ -1629,8 +1718,10 @@ async function loadDataCenterTasks(){
     return;
   }
 
-  status.textContent="正在加载任务...";
-  status.className="note";
+  if(!silent){
+    status.textContent="正在加载任务...";
+    status.className="note";
+  }
 
   try{
     const response=await fetch(
@@ -1724,6 +1815,8 @@ async function loadDataCenterTasks(){
         </div>
       `;
     }).join("");
+
+    status.textContent="";
 
     list.querySelectorAll("[data-detail-url]").forEach(button=>{
       button.onclick=async()=>{
@@ -1819,6 +1912,48 @@ async function loadDataCenterTasks(){
   }
 }
 
+function startDataCenterPolling(){
+  const pauseBtn=document.getElementById("dataPauseBtn");
+
+  if(dataCenterTimer){
+    clearInterval(dataCenterTimer);
+  }
+
+  if(pauseBtn){
+    pauseBtn.disabled=false;
+    pauseBtn.textContent="暂停";
+  }
+
+  loadDataCenterTasks(true);
+
+  dataCenterTimer=setInterval(()=>{
+    loadDataCenterTasks(true);
+  },5000);
+}
+
+function toggleDataCenterPolling(){
+  const pauseBtn=document.getElementById("dataPauseBtn");
+
+  if(dataCenterTimer){
+    clearInterval(dataCenterTimer);
+    dataCenterTimer=null;
+
+    if(pauseBtn){
+      pauseBtn.textContent="继续";
+    }
+    return;
+  }
+
+  if(pauseBtn){
+    pauseBtn.textContent="暂停";
+  }
+
+  loadDataCenterTasks(true);
+  dataCenterTimer=setInterval(()=>{
+    loadDataCenterTasks(true);
+  },5000);
+}
+
 function showDataTaskDetail(detail, taskElement){
   const panel=document.createElement("div");
   panel.className="data-task-detail";
@@ -1899,12 +2034,22 @@ function initPages(){
   document.getElementById("dataRefreshBtn");
 
 if(dataRefreshButton){
-  dataRefreshButton.onclick=loadDataCenterTasks;
+  dataRefreshButton.onclick=()=>loadDataCenterTasks();
+}
+
+const dataPauseButton=document.getElementById("dataPauseBtn");
+if(dataPauseButton){
+  dataPauseButton.onclick=toggleDataCenterPolling;
 }
 
   const processButton=document.getElementById("processBtn");
 if(processButton){
   processButton.onclick=processDocument;
+}
+
+const docPauseButton=document.getElementById("docPauseBtn");
+if(docPauseButton){
+  docPauseButton.onclick=toggleDocumentPolling;
 }
 
 const refreshDocumentsButton=
@@ -2045,7 +2190,10 @@ function showPage(key){
   renderNav();
 
   if(key==="data"){
-    loadDataCenterTasks();
+    startDataCenterPolling();
+  }else if(dataCenterTimer){
+    clearInterval(dataCenterTimer);
+    dataCenterTimer=null;
   }
 
   if(key==="documents"){
