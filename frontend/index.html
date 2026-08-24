@@ -473,6 +473,7 @@ function dataCenterPage(){
       <div class="panel-title-row">
         <h2>历史任务</h2>
         <div class="btn-group">
+          <button id="dataDiscardBtn" class="btn-danger" disabled>丢弃</button>
           <button id="dataPauseBtn" class="btn-secondary" disabled>暂停</button>
           <button id="dataRefreshBtn" class="btn-secondary">刷新</button>
         </div>
@@ -1112,6 +1113,7 @@ function documentsPage(){
       <div class="panel-title-row">
         <h2>历史任务</h2>
         <div class="btn-group">
+          <button id="docDiscardBtn" class="btn-danger" disabled>丢弃</button>
           <button id="docPauseBtn" class="btn-secondary" disabled>暂停</button>
           <button id="refreshDocuments" class="btn-secondary">
             刷新
@@ -1499,6 +1501,8 @@ async function processDocument(){
   status.className="note";
   resultBox.textContent="任务提交中...";
   downloadLink.hidden=true;
+  const downloadArea=document.getElementById("downloadArea");
+  if(downloadArea) downloadArea.hidden=true;
 
   try{
     const response=await fetch(API_BASE+"/documents/process",{
@@ -1553,6 +1557,11 @@ function startDocumentPolling(id){
     pauseBtn.textContent="暂停";
   }
 
+  const discardBtn=document.getElementById("docDiscardBtn");
+  if(discardBtn){
+    discardBtn.disabled=false;
+  }
+
   checkDocumentStatus(id);
 
   documentPollTimer=setInterval(()=>{
@@ -1589,6 +1598,57 @@ function toggleDocumentPolling(){
   startDocumentPolling(currentDocumentId);
 }
 
+function discardDocumentPolling(){
+  const discardBtn=document.getElementById("docDiscardBtn");
+  const pauseBtn=document.getElementById("docPauseBtn");
+  const status=document.getElementById("documentStatus");
+  const resultBox=document.getElementById("resultContent");
+  const button=document.getElementById("processBtn");
+  const downloadLink=document.getElementById("downloadLink");
+  const downloadArea=document.getElementById("downloadArea");
+
+  if(documentPollTimer){
+    clearInterval(documentPollTimer);
+    documentPollTimer=null;
+  }
+
+  currentDocumentId=null;
+  documentState.processing=false;
+  documentState.status="";
+
+  if(discardBtn){
+    discardBtn.disabled=true;
+    discardBtn.textContent="丢弃";
+  }
+
+  if(pauseBtn){
+    pauseBtn.disabled=true;
+    pauseBtn.textContent="暂停";
+  }
+
+  if(status){
+    status.textContent="已丢弃当前任务";
+    status.className="note";
+  }
+
+  if(resultBox){
+    resultBox.textContent="尚未提交任务";
+  }
+
+  if(downloadLink){
+    downloadLink.hidden=true;
+  }
+
+  if(downloadArea){
+    downloadArea.hidden=true;
+  }
+
+  if(button){
+    button.disabled=false;
+    button.textContent="开始处理";
+  }
+}
+
 async function checkDocumentStatus(id){
   const status=document.getElementById("documentStatus");
   const resultBox=document.getElementById("resultContent");
@@ -1620,10 +1680,14 @@ async function checkDocumentStatus(id){
       status.className="note success";
       resultBox.textContent=result.report_content || "后端未返回报告内容";
 
+      const fmt=document.getElementById("downloadFormatSelect");
+      const formatParam=fmt ? fmt.value : "md";
       downloadLink.href=
-        API_BASE+"/documents/"+encodeURIComponent(id)+"/download";
-      downloadLink.download=result.output_filename || "分析报告";
+        API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+formatParam;
+      downloadLink.download=(result.output_filename || "分析报告")+(formatParam==="docx"?".docx":".md");
       downloadLink.hidden=false;
+      const downloadArea=document.getElementById("downloadArea");
+      if(downloadArea) downloadArea.hidden=false;
 
       button.disabled=false;
       button.textContent="开始处理";
@@ -1807,11 +1871,17 @@ async function loadDataCenterTasks(silent=false){
             </button>
             ${
               item.status==="completed"
-                ? `<a class="download"
-                    href="${escapeHtml(downloadUrl)}"
-                    download>
-                    下载
-                   </a>`
+                ? `<div style="display:flex;align-items:center;gap:4px;white-space:nowrap">
+                    <select class="data-download-format" data-doc-id="${escapeHtml(item.id)}" style="padding:4px 6px;border:1px solid #cbd7de;border-radius:4px;font-size:13px;font:inherit">
+                      <option value="md">.md</option>
+                      <option value="docx">.docx</option>
+                    </select>
+                    <a class="download"
+                       href="${escapeHtml(downloadUrl)}?format=md"
+                       download style="margin:0">
+                      下载
+                    </a>
+                   </div>`
                 : ""
             }
           </div>
@@ -1906,6 +1976,22 @@ async function loadDataCenterTasks(silent=false){
   };
 });
 
+// 绑定下载格式选择器变化事件
+list.querySelectorAll(".data-download-format").forEach(select=>{
+  select.onchange=function(){
+    const id=this.dataset.docId;
+    const fmt=this.value;
+    const link=this.nextElementSibling;
+    if(link && link.tagName.toLowerCase()==="a"){
+      link.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt;
+      // 更新下载文件名
+      const item=items.find(i=>i.id===id);
+      const baseName=item?.output_filename || "分析报告";
+      link.download=baseName+(fmt==="docx"?".docx":".md");
+    }
+  };
+});
+
     status.textContent=`共 ${result.total ?? items.length} 条任务`;
     status.className="note success";
   }catch(error){
@@ -1917,6 +2003,7 @@ async function loadDataCenterTasks(silent=false){
 
 function startDataCenterPolling(){
   const pauseBtn=document.getElementById("dataPauseBtn");
+  const discardBtn=document.getElementById("dataDiscardBtn");
 
   if(dataCenterTimer){
     clearInterval(dataCenterTimer);
@@ -1925,6 +2012,10 @@ function startDataCenterPolling(){
   if(pauseBtn){
     pauseBtn.disabled=false;
     pauseBtn.textContent="暂停";
+  }
+
+  if(discardBtn){
+    discardBtn.disabled=false;
   }
 
   loadDataCenterTasks(true);
@@ -1955,6 +2046,41 @@ function toggleDataCenterPolling(){
   dataCenterTimer=setInterval(()=>{
     loadDataCenterTasks(true);
   },5000);
+}
+
+function discardDataCenterPolling(){
+  const discardBtn=document.getElementById("dataDiscardBtn");
+  const pauseBtn=document.getElementById("dataPauseBtn");
+  const status=document.getElementById("dataStatus");
+  const list=document.getElementById("dataTaskList");
+
+  if(dataCenterTimer){
+    clearInterval(dataCenterTimer);
+    dataCenterTimer=null;
+  }
+
+  if(discardBtn){
+    discardBtn.disabled=true;
+  }
+
+  if(pauseBtn){
+    pauseBtn.disabled=true;
+    pauseBtn.textContent="暂停";
+  }
+
+  if(status){
+    status.textContent="已停止轮询";
+    status.className="note";
+  }
+
+  if(list){
+    list.innerHTML=`
+      <div class="empty">
+        <strong>轮询已停止</strong>
+        <span>点击「刷新」可重新加载任务列表。</span>
+      </div>
+    `;
+  }
 }
 
 function showDataTaskDetail(detail, taskElement){
@@ -2045,6 +2171,11 @@ if(dataPauseButton){
   dataPauseButton.onclick=toggleDataCenterPolling;
 }
 
+const dataDiscardButton=document.getElementById("dataDiscardBtn");
+if(dataDiscardButton){
+  dataDiscardButton.onclick=discardDataCenterPolling;
+}
+
   const processButton=document.getElementById("processBtn");
 if(processButton){
   processButton.onclick=processDocument;
@@ -2053,6 +2184,22 @@ if(processButton){
 const docPauseButton=document.getElementById("docPauseBtn");
 if(docPauseButton){
   docPauseButton.onclick=toggleDocumentPolling;
+}
+
+const docDiscardButton=document.getElementById("docDiscardBtn");
+if(docDiscardButton){
+  docDiscardButton.onclick=discardDocumentPolling;
+}
+
+const downloadFormatSelect=document.getElementById("downloadFormatSelect");
+if(downloadFormatSelect){
+  downloadFormatSelect.onchange=function(){
+    const id=currentDocumentId;
+    if(!id) return;
+    const fmt=this.value;
+    downloadLink.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt;
+    downloadLink.download=(document.getElementById("fileName").value.trim() || "分析报告")+(fmt==="docx"?".docx":".md");
+  };
 }
 
 const refreshDocumentsButton=
