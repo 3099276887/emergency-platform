@@ -308,7 +308,10 @@ body.side-collapsed aside .law-subnav{display:none}
 
 /* 批量删除 */
 .kb-batch-bar{
-  display:flex;align-items:center;gap:12px;padding:10px 0;
+  display:inline-flex;align-items:center;gap:8px;padding:0;border:none;margin:0;min-height:auto;
+}
+.kb-batch-bar-standalone{
+  display:flex;gap:12px;padding:10px 0;
   border-bottom:1px solid #d9e2e8;margin-bottom:4px;min-height:42px;
 }
 .kb-batch-bar label{display:flex;align-items:center;gap:6px;color:#405664;font-size:14px;cursor:pointer}
@@ -520,6 +523,12 @@ function dataCenterPage(){
       <div class="panel-title-row">
         <h2>历史任务</h2>
         <div class="btn-group">
+          <div class="kb-batch-bar" id="dataBatchBar" style="display:none">
+            <label><input type="checkbox" id="dataSelectAll"> 全选</label>
+            <span class="kb-batch-count" id="dataBatchCount">已选 0 项</span>
+            <button id="dataBatchViewBtn" class="btn-secondary" disabled>查看</button>
+            <button id="dataBatchDeleteBtn" class="btn-danger" disabled>删除</button>
+          </div>
           <button id="dataDiscardBtn" class="btn-danger" disabled>丢弃</button>
           <button id="dataPauseBtn" class="btn-secondary" disabled>暂停</button>
           <button id="dataRefreshBtn" class="btn-secondary">刷新</button>
@@ -528,12 +537,6 @@ function dataCenterPage(){
 
       <p id="dataStatus" class="note">正在加载任务...</p>
       <div id="dataTaskList"></div>
-
-      <div class="kb-batch-bar" id="dataBatchBar" style="display:none">
-        <label><input type="checkbox" id="dataSelectAll"> 全选</label>
-        <span class="kb-batch-count" id="dataBatchCount">已选 0 项</span>
-        <button id="dataBatchDeleteBtn" class="btn-danger" disabled>批量删除</button>
-      </div>
     </section>
   `;
 }
@@ -642,13 +645,14 @@ function knowledgePage(){
         <button id="kbSearchBtn" class="btn-secondary">查询</button>
       </div>
 
-      <div id="kbFileList"></div>
-
-      <div class="kb-batch-bar" id="kbBatchBar" style="display:none">
+      <div class="kb-batch-bar kb-batch-bar-standalone" id="kbBatchBar" style="display:none">
         <label><input type="checkbox" id="kbSelectAll"> 全选</label>
         <span class="kb-batch-count" id="kbBatchCount">已选 0 项</span>
-        <button id="kbBatchDeleteBtn" class="btn-danger" disabled>批量删除</button>
+        <button id="kbBatchViewBtn" class="btn-secondary" disabled>查看</button>
+        <button id="kbBatchDeleteBtn" class="btn-danger" disabled>删除</button>
       </div>
+
+      <div id="kbFileList"></div>
     </section>
   `;
 }
@@ -1118,8 +1122,21 @@ function updateKbBatchCount(){
   const checked=document.querySelectorAll(".kb-checkbox:checked");
   const count=document.getElementById("kbBatchCount");
   const batchDelete=document.getElementById("kbBatchDeleteBtn");
+  const batchView=document.getElementById("kbBatchViewBtn");
   if(count) count.textContent="已选 "+checked.length+" 项";
   if(batchDelete) batchDelete.disabled=checked.length===0;
+  if(batchView) batchView.disabled=checked.length===0;
+}
+
+function batchViewKnowledgeFiles(){
+  const checked=document.querySelectorAll(".kb-checkbox:checked");
+  if(checked.length===0) return;
+  const first=checked[0];
+  const filename=first.dataset.kbCheck;
+  if(!filename) return;
+  const row=first.closest(".data-task");
+  const viewBtn=row && row.querySelector("[data-kb-view]");
+  if(viewBtn) viewKnowledgeFile(filename, viewBtn);
 }
 
 function batchDeleteKnowledgeFiles(){
@@ -2277,9 +2294,11 @@ function bindDataCenterBatchBar(list){
   const batchBar=document.getElementById("dataBatchBar");
   const selectAll=document.getElementById("dataSelectAll");
   const batchDeleteBtn=document.getElementById("dataBatchDeleteBtn");
+  const batchViewBtn=document.getElementById("dataBatchViewBtn");
   if(batchBar) batchBar.style.display="";
   if(selectAll) selectAll.checked=false;
   if(batchDeleteBtn) batchDeleteBtn.onclick=batchDeleteDataCenterTasks;
+  if(batchViewBtn) batchViewBtn.onclick=batchViewDataCenterTasks;
 
   list.querySelectorAll(".dc-checkbox").forEach(cb=>{
     cb.onchange=updateDataCenterBatchCount;
@@ -2310,8 +2329,21 @@ function updateDataCenterBatchCount(){
   const checked=document.querySelectorAll(".dc-checkbox:checked");
   const count=document.getElementById("dataBatchCount");
   const batchDelete=document.getElementById("dataBatchDeleteBtn");
+  const batchView=document.getElementById("dataBatchViewBtn");
   if(count) count.textContent="已选 "+checked.length+" 项";
   if(batchDelete) batchDelete.disabled=checked.length===0;
+  if(batchView) batchView.disabled=checked.length===0;
+}
+
+function batchViewDataCenterTasks(){
+  const checked=document.querySelectorAll(".dc-checkbox:checked");
+  if(checked.length===0) return;
+  const first=checked[0];
+  const id=first.dataset.dcCheck;
+  if(!id) return;
+  const row=first.closest(".data-task");
+  const viewBtn=row && row.querySelector("[data-detail-url]");
+  if(viewBtn) viewBtn.click();
 }
 
 function batchDeleteDataCenterTasks(){
@@ -2596,6 +2628,10 @@ if(kbUploadButton){
 const kbBatchDeleteBtn=document.getElementById("kbBatchDeleteBtn");
 if(kbBatchDeleteBtn){
   kbBatchDeleteBtn.onclick=batchDeleteKnowledgeFiles;
+}
+const kbBatchViewBtn=document.getElementById("kbBatchViewBtn");
+if(kbBatchViewBtn){
+  kbBatchViewBtn.onclick=batchViewKnowledgeFiles;
 }
 
 const kbSearchButton=document.getElementById("kbSearchBtn");
