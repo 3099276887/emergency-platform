@@ -224,7 +224,8 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-msg{display:flex;margin:14px auto;width:70%;max-width:900px}
 .chat-msg.user{justify-content:flex-end}
 .chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
-.chat-msg.user .bubble{background:#3975b5;color:#fff;border-top-right-radius:3px}
+.chat-msg.user .bubble{background:#fff;color:#1a1a1a;border:1px solid #e5e5e5;border-top-right-radius:3px}
+.chat-msg.user .bubble.has-img{padding:0;border:none;box-shadow:none}
 .chat-msg.ai .bubble{background:transparent;border:none;border-radius:5px;color:#233746;max-width:100%}
 .chat-msg-img{
   max-width:320px;max-height:240px;border-radius:6px;display:block;margin-bottom:4px;
@@ -249,11 +250,13 @@ body.side-collapsed aside .law-subnav{display:none}
   border-color:#d0d0d0;box-shadow:0 2px 16px rgba(0,0,0,0.12);
 }
 .chat-input textarea{
-  display:block;width:100%;max-height:200px;min-height:26px;
+  display:block;width:100%;max-height:280px;min-height:26px;
   border:none;outline:none;background:transparent;box-shadow:none;
   padding:14px 14px 4px;line-height:1.5;font-size:15px;resize:none;
+  overflow-y:auto;scrollbar-width:none;
   color:#1a1a1a;
 }
+.chat-input textarea::-webkit-scrollbar{display:none}
 .chat-input textarea::placeholder{color:#9ca3af}
 .chat-continue-btn{
   position:absolute;top:8px;right:8px;width:28px;height:28px;
@@ -283,13 +286,14 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-action-btn:hover{background:#f3f4f6}
 .chat-action-btn svg{width:18px;height:18px;fill:currentColor}
 .chat-send-btn{
-  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
-  border:0;border-radius:8px;cursor:pointer;background:#1a1a1a;color:#fff;
-  transition:background .15s;
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:10px;cursor:pointer;background:#1a1a1a;color:#fff;
+  transition:background .15s,transform .1s;
 }
-.chat-send-btn:hover{background:#333}
+.chat-send-btn:hover{background:#333;transform:scale(1.05)}
+.chat-send-btn:active{transform:scale(0.95)}
 .chat-send-btn:disabled{background:#d1d5db;cursor:not-allowed}
-.chat-send-btn svg{width:16px;height:16px;fill:currentColor}
+.chat-send-btn svg{width:17px;height:17px;fill:currentColor}
 .chat-send-btn.state-stop{background:#ef4444}
 .chat-send-btn.state-stop:hover{background:#dc2626}
 .chat-send-btn.state-continue{background:#10b981}
@@ -1447,8 +1451,10 @@ function renderChat(){
 
     // 支持 content 为数组（含图片）或纯文本
     if(Array.isArray(message.content)){
+      let hasImg=false;
       for(const part of message.content){
         if(part.type==="image_url" && part.image_url && part.image_url.url){
+          hasImg=true;
           const img=document.createElement("img");
           img.src=part.image_url.url;
           img.className="chat-msg-img";
@@ -1460,6 +1466,7 @@ function renderChat(){
           bubble.appendChild(textSpan);
         }
       }
+      if(hasImg) bubble.classList.add("has-img");
     }else{
       bubble.textContent=message.content;
     }
@@ -1589,6 +1596,7 @@ async function sendAiMessage(){
   saveChat();
 
   input.value=""; // 点击发送后立即清空输入框
+  input.style.height="auto"; // 重置输入框高度
   await startAiStream(false);
 }
 
@@ -2792,6 +2800,12 @@ loadDocuments();
           sendAiMessage();
         }
       }
+    });
+    aiInput.addEventListener("input",function(){
+      this.style.height="auto";
+      const maxH=280;
+      this.style.height=Math.min(this.scrollHeight,maxH)+"px";
+      this.style.overflowY=this.scrollHeight>maxH?"auto":"hidden";
     });
   }
 
