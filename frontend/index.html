@@ -234,9 +234,10 @@ body.side-collapsed aside .law-subnav{display:none}
   margin:0 auto;
   padding:8px 0 6px;
   background:#eef2f5;flex-shrink:0;
+  display:flex;align-items:flex-end;gap:8px;
 }
 .chat-input-box{
-  position:relative;
+  position:relative;flex:1;
 }
 .chat-input textarea{
   display:block;width:100%;height:80px;min-height:0;
@@ -265,6 +266,13 @@ body.side-collapsed aside .law-subnav{display:none}
   right:82px;background:#9aaab3;
 }
 .chat-btn-clear:hover{background:#6b7d89}
+.chat-btn-new-chat{
+  flex-shrink:0;white-space:nowrap;padding:8px 16px;
+  border:1px solid #9fb4c2;border-radius:8px;
+  background:#fff;color:#123b5d;cursor:pointer;
+  font-size:14px;margin-bottom:4px;
+}
+.chat-btn-new-chat:hover{background:#f0f3f6}
 .rag-label{
   position:absolute;left:12px;bottom:6px;
   display:flex;align-items:center;gap:5px;
@@ -616,9 +624,10 @@ function knowledgePage(){
       </div>
 
       <div class="field">
-        <label for="kbFileTypeInput">文件类型</label>
+        <label for="kbFileTypeInput">文件类型 <span style="color:#c94135">*</span></label>
         <select id="kbFileTypeInput">
-          <option value="">请选择类型（可选）</option>
+          <option value="" disabled selected>请选择文件类型</option>
+          <option value="暂定">暂定</option>
           <option value="国家法律">国家法律</option>
           <option value="行政法规">行政法规</option>
           <option value="地方法规">地方法规</option>
@@ -783,6 +792,7 @@ async function loadKnowledgeFiles(){
 
         <div class="data-task-actions">
           <input type="checkbox" class="kb-checkbox" data-kb-check="${escapeHtml(file.filename || "")}">
+          ${file.status==="building"?'<span class="spinner"></span>':''}
           <b class="task-status status-${escapeHtml(file.status || "")}">
             ${escapeHtml(knowledgeFileStatus(file.status))}
           </b>
@@ -907,6 +917,13 @@ async function uploadKnowledgeFile(){
     return;
   }
 
+  const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
+  if(!fileType){
+    status.textContent="请选择文件类型才能上传";
+    status.className="note error";
+    return;
+  }
+
   const invalidFiles=files.filter(
     file=>!/\.(txt|docx|pdf)$/i.test(file.name)
   );
@@ -922,8 +939,6 @@ async function uploadKnowledgeFile(){
 
   button.disabled=true;
   button.textContent="正在上传...";
-
-  const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
 
   let successCount=0;
   const failedFiles=[];
@@ -1253,7 +1268,7 @@ function documentsPage(){
         class="btn"
         ${documentState.processing ? "disabled" : ""}
       >
-        ${documentState.processing ? "处理中..." : "开始处理"}
+        ${documentState.processing ? '<span class="spinner" style="margin:0"></span>处理中...' : "开始处理"}
       </button>
 
       <p
@@ -1344,7 +1359,7 @@ function aiPage(){
             id="aiInput"
             placeholder="请输入问题，Enter 发送，Shift+Enter 换行"
           ></textarea>
-          <button id="clearChat" class="chat-btn chat-btn-clear" type="button" title="新建对话">
+          <button id="chatFileBtn" class="chat-btn chat-btn-clear" type="button" title="上传文件到知识库">
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           </button>
           <button id="aiStop" class="chat-btn" type="button" title="停止生成">
@@ -1357,6 +1372,7 @@ function aiPage(){
             <input type="checkbox" id="ragToggle" />RAG
           </label>
         </div>
+        <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
       </div>
     </div>
   `;
@@ -2700,6 +2716,60 @@ loadDocuments();
 
       saveChat();
       renderChat();
+    };
+  }
+
+  const chatFileBtn=document.getElementById("chatFileBtn");
+  if(chatFileBtn){
+    const chatFileInput=document.createElement("input");
+    chatFileInput.type="file";
+    chatFileInput.accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf";
+    chatFileInput.multiple=true;
+    chatFileInput.style.display="none";
+    chatFileBtn.parentNode.appendChild(chatFileInput);
+    chatFileBtn.onclick=()=>{
+      if(!document.getElementById("kbFileTypeInput")){
+        alert("请先切换到知识库页面设置文件类型后再上传");
+        return;
+      }
+      chatFileInput.click();
+    };
+    chatFileInput.onchange=async()=>{
+      const files=Array.from(chatFileInput.files || []);
+      if(files.length===0) return;
+
+      const fileTypeInput=document.getElementById("kbFileTypeInput");
+      const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
+      if(!fileType){
+        alert("请先在知识库页面选择文件类型再上传");
+        chatFileInput.value="";
+        return;
+      }
+
+      const invalidFiles=files.filter(f=>!/\.(txt|docx|pdf)$/i.test(f.name));
+      if(invalidFiles.length>0){
+        alert("以下文件格式不支持："+invalidFiles.map(f=>f.name).join("、"));
+        chatFileInput.value="";
+        return;
+      }
+
+      for(let i=0;i<files.length;i++){
+        const file=files[i];
+        const formData=new FormData();
+        formData.append("file",file);
+        formData.append("file_type",fileType);
+        try{
+          await fetch(API_BASE+"/files",{
+            method:"POST",
+            headers:{"Accept":"application/json"},
+            body:formData
+          });
+        }catch(e){
+          console.error("上传失败:",file.name,e);
+        }
+      }
+      chatFileInput.value="";
+      alert("上传完成，已添加到知识库");
     };
   }
 
