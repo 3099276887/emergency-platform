@@ -230,53 +230,77 @@ body.side-collapsed aside .law-subnav{display:none}
   max-width:320px;max-height:240px;border-radius:6px;display:block;margin-bottom:4px;
   object-fit:contain;background:#f5f5f5;cursor:pointer;
 }
-/* 输入区：居中、宽度 70%~80%（max 900px），高度适中，圆润浅灰背景 */
+/* 输入区：DeepSeek 风格，底部固定圆角输入框 */
 .chat-input{
   position:sticky;
   bottom:0;
   width:70%;max-width:900px;
   margin:0 auto;
-  padding:8px 0 6px;
+  padding:6px 0 10px;
   background:#eef2f5;flex-shrink:0;
   display:flex;align-items:flex-end;gap:8px;
 }
 .chat-input-box{
-  position:relative;flex:1;
+  position:relative;flex:1;border-radius:16px;
+  background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  border:1px solid #e5e5e5;overflow:hidden;
+}
+.chat-input-box:focus-within{
+  border-color:#d0d0d0;box-shadow:0 2px 16px rgba(0,0,0,0.12);
 }
 .chat-input textarea{
-  display:block;width:100%;height:80px;min-height:0;
-  border:1px solid #dcdcdc;outline:none;
-  border-radius:12px;background:#F5F6F8;box-shadow:0 1px 3px rgba(0,0,0,0.08);
-  padding:9px 52px 24px 14px;line-height:1.6;font-size:15px;
-  resize:none;overflow:hidden;
+  display:block;width:100%;max-height:200px;min-height:26px;
+  border:none;outline:none;background:transparent;box-shadow:none;
+  padding:14px 14px 4px;line-height:1.5;font-size:15px;resize:none;
+  color:#1a1a1a;
 }
-.chat-btn{
-  position:absolute;top:50%;transform:translateY(-50%);right:8px;
-  width:30px;height:30px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-  border:0;border-radius:50%;cursor:pointer;background:#3975b5;color:#fff;
+.chat-input textarea::placeholder{color:#9ca3af}
+.chat-continue-btn{
+  position:absolute;top:8px;right:8px;width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:6px;cursor:pointer;background:#10b981;color:#fff;
+  z-index:2;transition:background .15s;
 }
-.chat-btn svg{width:15px;height:15px;fill:currentColor}
-#aiStop{
-  width:30px;height:30px;
-  right:44px;/* 与发送按钮保持间距 */
-  background:#c94135;
-  display:none;
+.chat-continue-btn:hover{background:#059669}
+.chat-continue-btn svg{width:14px;height:14px;fill:currentColor}
+.chat-input-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 8px 8px;
 }
-#aiStop.show{display:flex}
-#aiStop.playing{background:#2f7452}
-#aiSend{background:#3975b5;}
-#aiSend:disabled{background:#9aaab3;cursor:not-allowed}
-.chat-btn-clear{
-  right:82px;background:#9aaab3;
+.rag-label{
+  display:flex;align-items:center;gap:4px;
+  color:#6b7280;font-size:13px;cursor:pointer;user-select:none;
 }
-.chat-btn-clear:hover{background:#6b7d89}
+.rag-label input[type="checkbox"]{accent-color:#6b7280;margin:0;cursor:pointer}
+.chat-input-actions{
+  display:flex;align-items:center;gap:4px;
+}
+.chat-action-btn{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:8px;cursor:pointer;background:transparent;color:#6b7280;
+  transition:background .15s;
+}
+.chat-action-btn:hover{background:#f3f4f6}
+.chat-action-btn svg{width:18px;height:18px;fill:currentColor}
+.chat-send-btn{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border:0;border-radius:8px;cursor:pointer;background:#1a1a1a;color:#fff;
+  transition:background .15s;
+}
+.chat-send-btn:hover{background:#333}
+.chat-send-btn:disabled{background:#d1d5db;cursor:not-allowed}
+.chat-send-btn svg{width:16px;height:16px;fill:currentColor}
+.chat-send-btn.state-stop{background:#ef4444}
+.chat-send-btn.state-stop:hover{background:#dc2626}
+.chat-send-btn.state-continue{background:#10b981}
+.chat-send-btn.state-continue:hover{background:#059669}
 .chat-btn-new-chat{
   flex-shrink:0;white-space:nowrap;padding:8px 16px;
-  border:1px solid #9fb4c2;border-radius:8px;
-  background:#fff;color:#123b5d;cursor:pointer;
-  font-size:14px;margin-bottom:4px;
+  border:1px solid #e5e5e5;border-radius:10px;
+  background:#fff;color:#1a1a1a;cursor:pointer;
+  font-size:14px;margin-bottom:0;
 }
-.chat-btn-new-chat:hover{background:#f0f3f6}
+.chat-btn-new-chat:hover{background:#f5f5f5}
 .chat-image-preview{
   display:flex;flex-wrap:wrap;gap:8px;padding:4px 12px 2px;
 }
@@ -1376,22 +1400,23 @@ function aiPage(){
       <div class="chat-input">
         <div class="chat-input-box">
           <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
-          <textarea
-            id="aiInput"
-            placeholder="请输入问题，Enter 发送，Shift+Enter 换行"
-          ></textarea>
-          <button id="chatFileBtn" class="chat-btn chat-btn-clear" type="button" title="上传文件到知识库">
-            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
+          <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           </button>
-          <button id="aiStop" class="chat-btn" type="button" title="停止生成">
-            <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-          </button>
-          <button id="aiSend" class="chat-btn" type="button" title="发送">
-            <svg viewBox="0 0 24 24"><path d="M2.6 12.5 21 5 13 21l-2.1-7.2L2.6 12.5z"/></svg>
-          </button>
-          <label class="rag-label">
-            <input type="checkbox" id="ragToggle" />RAG
-          </label>
+          <div class="chat-input-footer">
+            <label class="rag-label">
+              <input type="checkbox" id="ragToggle" />RAG
+            </label>
+            <div class="chat-input-actions">
+              <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传文件">
+                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </button>
+              <button id="aiSend" class="chat-send-btn" type="button" title="发送">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21l3.75-3.75L3 17.25zM21 3l-9 12.75L7.5 9 21 3z"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
         <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
       </div>
@@ -1472,32 +1497,38 @@ let aiCleared = false; // 新建对话导致的中断，不保留部分回答
 
 function setChatStreamingState(streaming){
   const sendButton=document.getElementById("aiSend");
-  const stopButton=document.getElementById("aiStop");
+  const continueBtn=document.getElementById("aiContinue");
+  if(!sendButton) return;
 
-  if(sendButton){
-    sendButton.disabled=streaming;
-  }
+  sendButton.disabled=false;
+  sendButton.classList.remove("state-stop","state-continue");
 
-  if(stopButton){
-    if(streaming){
-      // 暂停图标
-      stopButton.innerHTML='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
-      stopButton.classList.remove("playing");
-      stopButton.classList.add("show");
-      stopButton.disabled=false;
-      stopButton.title="暂停";
-    }else if(aiPartial){
-      // 播放图标：继续生成
-      stopButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-      stopButton.classList.add("playing");
-      stopButton.classList.add("show");
-      stopButton.disabled=false;
-      stopButton.title="继续生成";
-    }else{
-      stopButton.classList.remove("show");
-      stopButton.classList.remove("playing");
-      stopButton.disabled=true;
+  if(streaming){
+    // 生成中 → 停止按钮
+    sendButton.innerHTML='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+    sendButton.classList.add("state-stop");
+    sendButton.title="停止";
+    sendButton.onclick=()=>{
+      if(aiAbortController){
+        aiAbortController.abort();
+      }
+    };
+    if(continueBtn) continueBtn.style.display="none";
+  }else if(aiPartial){
+    // 暂停后 → 发送按钮恢复默认，继续按钮出现在右上角
+    sendButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 17.25V21l3.75-3.75L3 17.25zM21 3l-9 12.75L7.5 9 21 3z"/></svg>';
+    sendButton.title="发送";
+    sendButton.onclick=sendAiMessage;
+    if(continueBtn){
+      continueBtn.style.display="flex";
+      continueBtn.onclick=()=>{ resumeAiMessage(); };
     }
+  }else{
+    // 默认 → 发送按钮
+    sendButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 17.25V21l3.75-3.75L3 17.25zM21 3l-9 12.75L7.5 9 21 3z"/></svg>';
+    sendButton.title="发送";
+    sendButton.onclick=sendAiMessage;
+    if(continueBtn) continueBtn.style.display="none";
   }
 }
 
@@ -2757,24 +2788,13 @@ loadDocuments();
     sendButton.onclick=sendAiMessage;
   }
 
-  const stopButton=document.getElementById("aiStop");
-  if(stopButton){
-    stopButton.onclick=()=>{
-      if(aiAbortController){
-        aiAbortController.abort(); // 暂停
-      }else if(aiPartial){
-        resumeAiMessage();         // 继续
-      }
-    };
-  }
-
   const aiInput=document.getElementById("aiInput");
   if(aiInput){
     aiInput.addEventListener("keydown",event=>{
       if(event.key==="Enter" && !event.shiftKey){
         event.preventDefault();
 
-        if(sendButton && !sendButton.disabled){
+        if(sendButton && !sendButton.disabled && !sendButton.classList.contains("state-stop") && !sendButton.classList.contains("state-continue")){
           sendAiMessage();
         }
       }
@@ -2800,6 +2820,8 @@ loadDocuments();
       aiPartial = null;
       pendingImages=[];
       renderImagePreview();
+      const continueBtn=document.getElementById("aiContinue");
+      if(continueBtn) continueBtn.style.display="none";
 
       chatMessages=[
         {
@@ -2856,18 +2878,9 @@ loadDocuments();
         renderImagePreview();
       }
 
-      // 文档：上传到知识库
+      // 文档：上传到知识库（默认暂定类型）
       if(docFiles.length>0){
-        const fileTypeInput=document.getElementById("kbFileTypeInput");
-        const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
-        if(!fileType && !imgFiles.length){
-          alert("请先切换到知识库页面设置文件类型后再上传");
-          return;
-        }
-        if(!fileType && docFiles.length>0){
-          alert("请先切换到知识库页面设置文件类型后再上传文档");
-          return;
-        }
+        const fileType = "暂定";
         const invalidFiles=docFiles.filter(f=>!/\.(txt|docx|pdf)$/i.test(f.name));
         if(invalidFiles.length>0){
           alert("以下文档格式不支持："+invalidFiles.map(f=>f.name).join("、"));
