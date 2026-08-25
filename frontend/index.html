@@ -316,12 +316,6 @@ body.side-collapsed aside .law-subnav{display:none}
   background:rgba(0,0,0,0.5);color:#fff;border:none;cursor:pointer;
   font-size:12px;line-height:18px;text-align:center;padding:0;
 }
-.rag-label{
-  position:absolute;left:12px;bottom:6px;
-  display:flex;align-items:center;gap:5px;
-  color:#6b7d89;font-size:13px;cursor:pointer;
-  user-select:none;
-}
 
 /* 回到最上方按钮 */
 .back-to-top{
@@ -1409,7 +1403,7 @@ function aiPage(){
               <input type="checkbox" id="ragToggle" />RAG
             </label>
             <div class="chat-input-actions">
-              <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传文件">
+              <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
               </button>
               <button id="aiSend" class="chat-send-btn" type="button" title="发送">
