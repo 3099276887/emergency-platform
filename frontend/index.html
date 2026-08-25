@@ -26,6 +26,7 @@ h1{margin:0;color:#123b5d;font-size:26px}
 .status b{color:#2f7452}
 .btn-danger{padding:8px 14px;border:1px solid #c94135;background:#fff;color:#c94135;cursor:pointer;border-radius:4px}
 .btn-danger:hover{background:#c94135;color:#fff}
+.btn-danger:disabled{background:#d9e2e8;color:#9aaab3;border-color:#d9e2e8;cursor:not-allowed}
 .module{cursor:pointer}
 .module:hover{border-color:#729bb1}
 .module h2{margin:0 0 8px;color:#123b5d;font-size:17px}
@@ -304,6 +305,15 @@ body.side-collapsed aside .law-subnav{display:none}
 .ai-status-dot.online{background:#4caf50}
 .ai-status-dot.busy{background:#ff9800}
 .ai-status-dot.offline{background:#f44336}
+
+/* 批量删除 */
+.kb-batch-bar{
+  display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid #d9e2e8;margin-bottom:4px;min-height:42px;
+}
+.kb-batch-bar label{display:flex;align-items:center;gap:6px;color:#405664;font-size:14px;cursor:pointer}
+.kb-batch-bar .kb-batch-count{color:#6b7d89;font-size:13px;flex:1}
+.kb-checkbox{width:16px;height:16px;cursor:pointer;margin:0;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -626,6 +636,12 @@ function knowledgePage(){
       </div>
 
       <div id="kbFileList"></div>
+
+      <div class="kb-batch-bar" id="kbBatchBar" style="display:none">
+        <label><input type="checkbox" id="kbSelectAll"> 全选</label>
+        <span class="kb-batch-count" id="kbBatchCount">已选 0 项</span>
+        <button id="kbBatchDeleteBtn" class="btn-danger" disabled>批量删除</button>
+      </div>
     </section>
   `;
 }
@@ -733,12 +749,14 @@ async function loadKnowledgeFiles(){
           <span>上传文件后，此处会显示登记与索引状态。</span>
         </div>
       `;
+      const batchBar=document.getElementById("kbBatchBar");
+      if(batchBar) batchBar.style.display="none";
       status.textContent="";
       return;
     }
 
     list.innerHTML=files.map(file=>`
-      <div class="data-task">
+      <div class="data-task" data-kb-filename="${escapeHtml(file.filename || "")}">
         <div class="data-task-main">
           <strong>${escapeHtml(file.filename || "未命名文件")}</strong>
           <span>类型：${escapeHtml(file.file_type || "—")}</span>
@@ -753,6 +771,7 @@ async function loadKnowledgeFiles(){
         </div>
 
         <div class="data-task-actions">
+          <input type="checkbox" class="kb-checkbox" data-kb-check="${escapeHtml(file.filename || "")}">
           <b class="task-status status-${escapeHtml(file.status || "")}">
             ${escapeHtml(knowledgeFileStatus(file.status))}
           </b>
@@ -771,6 +790,26 @@ async function loadKnowledgeFiles(){
         </div>
       </div>
     `).join("");
+
+    // 批量操作：显示 batch bar，绑定 checkbox 逻辑
+    const batchBar=document.getElementById("kbBatchBar");
+    const selectAll=document.getElementById("kbSelectAll");
+    if(batchBar) batchBar.style.display="";
+    if(selectAll) selectAll.checked=false;
+
+    list.querySelectorAll(".kb-checkbox").forEach(cb=>{
+      cb.onchange=updateKbBatchCount;
+    });
+
+    if(selectAll){
+      selectAll.onchange=function(){
+        const checked=this.checked;
+        list.querySelectorAll(".kb-checkbox").forEach(cb=>cb.checked=checked);
+        updateKbBatchCount();
+      };
+    }
+
+    updateKbBatchCount();
 
     list.querySelectorAll("[data-kb-view]").forEach(button=>{
       button.onclick=()=>{
@@ -1056,6 +1095,75 @@ async function deleteKnowledgeFile(filename, button){
       button.textContent="删除";
     }
   }
+}
+
+function updateKbBatchCount(){
+  const checked=document.querySelectorAll(".kb-checkbox:checked");
+  const count=document.getElementById("kbBatchCount");
+  const batchDelete=document.getElementById("kbBatchDeleteBtn");
+  if(count) count.textContent="已选 "+checked.length+" 项";
+  if(batchDelete) batchDelete.disabled=checked.length===0;
+}
+
+function batchDeleteKnowledgeFiles(){
+  const checked=document.querySelectorAll(".kb-checkbox:checked");
+  if(checked.length===0) return;
+
+  const names=Array.from(checked).map(cb=>cb.dataset.kbCheck).filter(Boolean);
+
+  if(!window.confirm("确定批量删除选中的 "+names.length+" 个文件并重建知识库索引吗？")){
+    return;
+  }
+
+  const status=document.getElementById("kbStatus");
+  const batchDelete=document.getElementById("kbBatchDeleteBtn");
+  if(batchDelete) batchDelete.disabled=true;
+
+  let successCount=0;
+  const failed=[];
+  const total=names.length;
+
+  (async ()=>{
+    for(let i=0;i<names.length;i++){
+      const name=names[i];
+      if(status){
+        status.textContent="正在删除 "+(i+1)+"/"+total+"："+name;
+        status.className="note";
+      }
+
+      try{
+        const response=await fetch(
+          API_BASE+"/files/"+encodeURIComponent(name),
+          {method:"DELETE",headers:{"Accept":"*/*"}}
+        );
+        const text=await response.text();
+        let result={};
+        if(text){
+          try{ result=JSON.parse(text); }catch(e){ result={message:text}; }
+        }
+        if(!response.ok){
+          throw new Error(result.message || result.detail || "HTTP "+response.status);
+        }
+        successCount++;
+      }catch(error){
+        failed.push(name+"："+error.message);
+      }
+    }
+
+    if(failed.length===0){
+      if(status){
+        status.textContent="删除完成，成功删除 "+successCount+" 个文件";
+        status.className="note success";
+      }
+    }else{
+      if(status){
+        status.textContent="删除完成：成功 "+successCount+" 个，失败 "+failed.length+" 个。"+failed.join("；");
+        status.className="note error";
+      }
+    }
+
+    loadKnowledgeFiles();
+  })();
 }
 
 function documentsPage(){
@@ -2360,6 +2468,11 @@ if(kbRefreshButton){
 const kbUploadButton=document.getElementById("kbUploadBtn");
 if(kbUploadButton){
   kbUploadButton.onclick=uploadKnowledgeFile;
+}
+
+const kbBatchDeleteBtn=document.getElementById("kbBatchDeleteBtn");
+if(kbBatchDeleteBtn){
+  kbBatchDeleteBtn.onclick=batchDeleteKnowledgeFiles;
 }
 
 const kbSearchButton=document.getElementById("kbSearchBtn");
