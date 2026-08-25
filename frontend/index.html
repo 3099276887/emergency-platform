@@ -314,6 +314,7 @@ body.side-collapsed aside .law-subnav{display:none}
 .kb-batch-bar label{display:flex;align-items:center;gap:6px;color:#405664;font-size:14px;cursor:pointer}
 .kb-batch-bar .kb-batch-count{color:#6b7d89;font-size:13px;flex:1}
 .kb-checkbox{width:16px;height:16px;cursor:pointer;margin:0;flex:0 0 auto}
+.dc-checkbox{width:16px;height:16px;cursor:pointer;margin:0;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -527,6 +528,12 @@ function dataCenterPage(){
 
       <p id="dataStatus" class="note">正在加载任务...</p>
       <div id="dataTaskList"></div>
+
+      <div class="kb-batch-bar" id="dataBatchBar" style="display:none">
+        <label><input type="checkbox" id="dataSelectAll"> 全选</label>
+        <span class="kb-batch-count" id="dataBatchCount">已选 0 项</span>
+        <button id="dataBatchDeleteBtn" class="btn-danger" disabled>批量删除</button>
+      </div>
     </section>
   `;
 }
@@ -810,6 +817,16 @@ async function loadKnowledgeFiles(){
     }
 
     updateKbBatchCount();
+
+    // 点击行任意位置切换选中（排除按钮和checkbox本身）
+    list.querySelectorAll(".data-task[data-kb-filename]").forEach(row=>{
+      row.style.cursor="pointer";
+      row.onclick=function(e){
+        if(e.target.tagName==="BUTTON" || e.target.tagName==="INPUT" || e.target.closest("button, input")) return;
+        const cb=this.querySelector(".kb-checkbox");
+        if(cb){ cb.checked=!cb.checked; cb.dispatchEvent(new Event("change")); }
+      };
+    });
 
     list.querySelectorAll("[data-kb-view]").forEach(button=>{
       button.onclick=()=>{
@@ -1950,6 +1967,8 @@ async function loadDataCenterTasks(silent=false){
           <span>完成文档处理后，任务会显示在这里。</span>
         </div>
       `;
+      const batchBar=document.getElementById("dataBatchBar");
+      if(batchBar) batchBar.style.display="none";
       status.textContent="";
       return;
     }
@@ -1991,7 +2010,7 @@ async function loadDataCenterTasks(silent=false){
         encodeURIComponent(item.id)+"/download";
 
       return `
-        <div class="data-task">
+        <div class="data-task" data-dc-id="${escapeHtml(item.id)}">
           <div class="data-task-main">
             <strong>${escapeHtml(
               item.output_filename || "未命名任务"
@@ -2008,6 +2027,7 @@ async function loadDataCenterTasks(silent=false){
           </div>
 
           <div class="data-task-actions">
+            <input type="checkbox" class="dc-checkbox" data-dc-check="${escapeHtml(item.id)}">
             ${item.status==="pending"||item.status==="processing"?'<span class="spinner"></span>':''}
             <b class="task-status status-${escapeHtml(item.status || "")}">
               ${escapeHtml(stateName)}
@@ -2048,6 +2068,7 @@ async function loadDataCenterTasks(silent=false){
     status.textContent="";
 
     bindDataCenterRowEvents(list, items, status);
+    bindDataCenterBatchBar(list);
   }catch(error){
     list.innerHTML="";
     status.textContent="历史任务加载失败："+error.message;
@@ -2250,6 +2271,108 @@ function bindDataCenterRowEvents(list, items, status){
       }
     };
   });
+}
+
+function bindDataCenterBatchBar(list){
+  const batchBar=document.getElementById("dataBatchBar");
+  const selectAll=document.getElementById("dataSelectAll");
+  const batchDeleteBtn=document.getElementById("dataBatchDeleteBtn");
+  if(batchBar) batchBar.style.display="";
+  if(selectAll) selectAll.checked=false;
+  if(batchDeleteBtn) batchDeleteBtn.onclick=batchDeleteDataCenterTasks;
+
+  list.querySelectorAll(".dc-checkbox").forEach(cb=>{
+    cb.onchange=updateDataCenterBatchCount;
+  });
+
+  if(selectAll){
+    selectAll.onchange=function(){
+      const checked=this.checked;
+      list.querySelectorAll(".dc-checkbox").forEach(cb=>cb.checked=checked);
+      updateDataCenterBatchCount();
+    };
+  }
+
+  updateDataCenterBatchCount();
+
+  // 点击行任意位置切换选中
+  list.querySelectorAll(".data-task[data-dc-id]").forEach(row=>{
+    row.style.cursor="pointer";
+    row.onclick=function(e){
+      if(e.target.tagName==="BUTTON" || e.target.tagName==="INPUT" || e.target.closest("button, input, a, select")) return;
+      const cb=this.querySelector(".dc-checkbox");
+      if(cb){ cb.checked=!cb.checked; cb.dispatchEvent(new Event("change")); }
+    };
+  });
+}
+
+function updateDataCenterBatchCount(){
+  const checked=document.querySelectorAll(".dc-checkbox:checked");
+  const count=document.getElementById("dataBatchCount");
+  const batchDelete=document.getElementById("dataBatchDeleteBtn");
+  if(count) count.textContent="已选 "+checked.length+" 项";
+  if(batchDelete) batchDelete.disabled=checked.length===0;
+}
+
+function batchDeleteDataCenterTasks(){
+  const checked=document.querySelectorAll(".dc-checkbox:checked");
+  if(checked.length===0) return;
+
+  const ids=Array.from(checked).map(cb=>cb.dataset.dcCheck).filter(Boolean);
+
+  if(!window.confirm("确定批量删除选中的 "+ids.length+" 条任务及其生成文档吗？")){
+    return;
+  }
+
+  const status=document.getElementById("dataStatus");
+  const batchDelete=document.getElementById("dataBatchDeleteBtn");
+  if(batchDelete) batchDelete.disabled=true;
+
+  let successCount=0;
+  const failed=[];
+  const total=ids.length;
+
+  (async ()=>{
+    for(let i=0;i<ids.length;i++){
+      const id=ids[i];
+      if(status){
+        status.textContent="正在删除 "+(i+1)+"/"+total+"（任务 "+id+"）";
+        status.className="note";
+      }
+
+      try{
+        const response=await fetch(
+          API_BASE+"/documents/"+encodeURIComponent(id),
+          {method:"DELETE",headers:{"Accept":"*/*"}}
+        );
+        const text=await response.text();
+        let result={};
+        if(text){
+          try{ result=JSON.parse(text); }catch(e){ result={message:text}; }
+        }
+        if(!response.ok){
+          throw new Error(result.message || result.detail || "HTTP "+response.status);
+        }
+        successCount++;
+      }catch(error){
+        failed.push("任务 "+id+"："+error.message);
+      }
+    }
+
+    if(failed.length===0){
+      if(status){
+        status.textContent="删除完成，成功删除 "+successCount+" 条任务";
+        status.className="note success";
+      }
+    }else{
+      if(status){
+        status.textContent="删除完成：成功 "+successCount+" 条，失败 "+failed.length+" 条。"+failed.join("；");
+        status.className="note error";
+      }
+    }
+
+    loadDataCenterTasks();
+  })();
 }
 
 function startDataCenterPolling(){
