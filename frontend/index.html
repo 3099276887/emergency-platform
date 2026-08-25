@@ -226,6 +226,10 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-msg .bubble{max-width:76%;padding:11px 15px;border-radius:12px;white-space:pre-wrap;word-break:break-word;line-height:1.7;font-size:15px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .chat-msg.user .bubble{background:#3975b5;color:#fff;border-top-right-radius:3px}
 .chat-msg.ai .bubble{background:transparent;border:none;border-radius:5px;color:#233746;max-width:100%}
+.chat-msg-img{
+  max-width:320px;max-height:240px;border-radius:6px;display:block;margin-bottom:4px;
+  object-fit:contain;background:#f5f5f5;cursor:pointer;
+}
 /* 输入区：居中、宽度 70%~80%（max 900px），高度适中，圆润浅灰背景 */
 .chat-input{
   position:sticky;
@@ -273,6 +277,21 @@ body.side-collapsed aside .law-subnav{display:none}
   font-size:14px;margin-bottom:4px;
 }
 .chat-btn-new-chat:hover{background:#f0f3f6}
+.chat-image-preview{
+  display:flex;flex-wrap:wrap;gap:8px;padding:4px 12px 2px;
+}
+.chat-image-preview .img-thumb{
+  position:relative;width:72px;height:72px;border-radius:6px;overflow:hidden;
+  border:1px solid var(--border, #d9e2e8);flex-shrink:0;
+}
+.chat-image-preview .img-thumb img{
+  width:100%;height:100%;object-fit:cover;
+}
+.chat-image-preview .img-thumb .img-remove{
+  position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+  background:rgba(0,0,0,0.5);color:#fff;border:none;cursor:pointer;
+  font-size:12px;line-height:18px;text-align:center;padding:0;
+}
 .rag-label{
   position:absolute;left:12px;bottom:6px;
   display:flex;align-items:center;gap:5px;
@@ -396,6 +415,7 @@ let chatMessages = [
     content: "请严谨回答，不得虚构事实。无法确认时明确说明。"
   }
 ];
+let pendingImages = []; // 待发送的图片 { dataUrl, name }
 
 function saveChat(){
   localStorage.setItem(
@@ -1355,6 +1375,7 @@ function aiPage(){
 
       <div class="chat-input">
         <div class="chat-input-box">
+          <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
           <textarea
             id="aiInput"
             placeholder="请输入问题，Enter 发送，Shift+Enter 换行"
@@ -1404,10 +1425,42 @@ function renderChat(){
 
     const bubble=document.createElement("div");
     bubble.className="bubble";
-    bubble.textContent=message.content;
+
+    // 支持 content 为数组（含图片）或纯文本
+    if(Array.isArray(message.content)){
+      for(const part of message.content){
+        if(part.type==="image_url" && part.image_url && part.image_url.url){
+          const img=document.createElement("img");
+          img.src=part.image_url.url;
+          img.className="chat-msg-img";
+          img.alt="用户发送的图片";
+          bubble.appendChild(img);
+        }else if(part.type==="text" && part.text){
+          const textSpan=document.createElement("span");
+          textSpan.textContent=part.text;
+          bubble.appendChild(textSpan);
+        }
+      }
+    }else{
+      bubble.textContent=message.content;
+    }
 
     row.appendChild(bubble);
     log.appendChild(row);
+  });
+
+  // 点击图片放大查看
+  log.querySelectorAll(".chat-msg-img").forEach(img=>{
+    img.onclick=function(){
+      const overlay=document.createElement("div");
+      overlay.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer";
+      const bigImg=document.createElement("img");
+      bigImg.src=this.src;
+      bigImg.style.cssText="max-width:90%;max-height:90%;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.4)";
+      overlay.appendChild(bigImg);
+      overlay.onclick=()=>overlay.remove();
+      document.body.appendChild(overlay);
+    };
   });
 
   log.scrollTop=log.scrollHeight;
@@ -1450,23 +1503,39 @@ function setChatStreamingState(streaming){
 
 let enableRAG = false;
 async function sendAiMessage(){
-  // 点“发送”始终开启新一轮对话
+  // 点"发送"始终开启新一轮对话
   const ragCheckbox=document.getElementById("ragToggle");
   if(ragCheckbox){ enableRAG=ragCheckbox.checked; }
   const input=document.getElementById("aiInput");
-  const content=input.value.trim();
+  const text=input.value.trim();
 
-  if(!content){
+  if(!text && pendingImages.length===0){
     return;
   }
 
   aiPartial = null;
   aiCleared = false;
 
+  // 构建消息 content：有图片时用数组，否则用字符串
+  let content;
+  if(pendingImages.length>0){
+    content=[];
+    if(text){
+      content.push({type:"text",text});
+    }
+    for(const img of pendingImages){
+      content.push({type:"image_url",image_url:{url:img.dataUrl}});
+    }
+  }else{
+    content=text;
+  }
+
   chatMessages.push({
     role:"user",
     content:content
   });
+  pendingImages=[];
+  renderImagePreview();
   saveChat();
 
   input.value=""; // 点击发送后立即清空输入框
@@ -2704,6 +2773,8 @@ loadDocuments();
       }
 
       aiPartial = null;
+      pendingImages=[];
+      renderImagePreview();
 
       chatMessages=[
         {
@@ -2723,54 +2794,99 @@ loadDocuments();
   if(chatFileBtn){
     const chatFileInput=document.createElement("input");
     chatFileInput.type="file";
-    chatFileInput.accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf";
+    chatFileInput.accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/*";
     chatFileInput.multiple=true;
     chatFileInput.style.display="none";
     chatFileBtn.parentNode.appendChild(chatFileInput);
     chatFileBtn.onclick=()=>{
-      if(!document.getElementById("kbFileTypeInput")){
-        alert("请先切换到知识库页面设置文件类型后再上传");
-        return;
-      }
+      chatFileInput.value="";
       chatFileInput.click();
     };
     chatFileInput.onchange=async()=>{
       const files=Array.from(chatFileInput.files || []);
       if(files.length===0) return;
 
-      const fileTypeInput=document.getElementById("kbFileTypeInput");
-      const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
-      if(!fileType){
-        alert("请先在知识库页面选择文件类型再上传");
-        chatFileInput.value="";
-        return;
-      }
+      const docFiles=[];
+      const imgFiles=[];
 
-      const invalidFiles=files.filter(f=>!/\.(txt|docx|pdf)$/i.test(f.name));
-      if(invalidFiles.length>0){
-        alert("以下文件格式不支持："+invalidFiles.map(f=>f.name).join("、"));
-        chatFileInput.value="";
-        return;
-      }
-
-      for(let i=0;i<files.length;i++){
-        const file=files[i];
-        const formData=new FormData();
-        formData.append("file",file);
-        formData.append("file_type",fileType);
-        try{
-          await fetch(API_BASE+"/files",{
-            method:"POST",
-            headers:{"Accept":"application/json"},
-            body:formData
-          });
-        }catch(e){
-          console.error("上传失败:",file.name,e);
+      for(const file of files){
+        if(file.type.startsWith("image/")){
+          imgFiles.push(file);
+        }else{
+          docFiles.push(file);
         }
       }
-      chatFileInput.value="";
-      alert("上传完成，已添加到知识库");
+
+      // 图片：转 base64 加入 pendingImages 并显示预览
+      for(const file of imgFiles){
+        const dataUrl=await new Promise((resolve,reject)=>{
+          const r=new FileReader();
+          r.onload=()=>resolve(r.result);
+          r.onerror=reject;
+          r.readAsDataURL(file);
+        });
+        pendingImages.push({dataUrl, name: file.name});
+      }
+      if(imgFiles.length>0){
+        renderImagePreview();
+      }
+
+      // 文档：上传到知识库
+      if(docFiles.length>0){
+        const fileTypeInput=document.getElementById("kbFileTypeInput");
+        const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
+        if(!fileType && !imgFiles.length){
+          alert("请先切换到知识库页面设置文件类型后再上传");
+          return;
+        }
+        if(!fileType && docFiles.length>0){
+          alert("请先切换到知识库页面设置文件类型后再上传文档");
+          return;
+        }
+        const invalidFiles=docFiles.filter(f=>!/\.(txt|docx|pdf)$/i.test(f.name));
+        if(invalidFiles.length>0){
+          alert("以下文档格式不支持："+invalidFiles.map(f=>f.name).join("、"));
+          return;
+        }
+        for(const file of docFiles){
+          const formData=new FormData();
+          formData.append("file",file);
+          formData.append("file_type",fileType);
+          try{
+            await fetch(API_BASE+"/files",{
+              method:"POST",headers:{"Accept":"application/json"},body:formData
+            });
+          }catch(e){
+            console.error("上传失败:",file.name,e);
+          }
+        }
+        alert("文档上传完成，已添加到知识库");
+      }
     };
+  }
+
+  function renderImagePreview(){
+    const container=document.getElementById("chatImagePreview");
+    if(!container) return;
+    if(pendingImages.length===0){
+      container.style.display="none";
+      container.innerHTML="";
+      return;
+    }
+    container.style.display="flex";
+    container.innerHTML=pendingImages.map((img,i)=>`
+      <div class="img-thumb">
+        <img src="${escapeHtml(img.dataUrl)}" alt="${escapeHtml(img.name)}">
+        <button class="img-remove" data-idx="${i}" type="button">&times;</button>
+      </div>
+    `).join("");
+    container.querySelectorAll(".img-remove").forEach(btn=>{
+      btn.onclick=function(){
+        const idx=parseInt(this.dataset.idx);
+        pendingImages.splice(idx,1);
+        renderImagePreview();
+      };
+    });
   }
 
   const navToggle=document.getElementById("navToggle");
