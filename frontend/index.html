@@ -469,7 +469,10 @@ function getRequestMessages(){
     .filter(message=>message.role!=="system")
     .slice(-20);
 
-  return [systemMessage,...history];
+  return [
+    ...(systemMessage ? [systemMessage] : []),
+    ...history
+  ];
 }
 
 function getContinueRequestMessages(){
@@ -1411,7 +1414,7 @@ function aiPage(){
                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
               </button>
               <button id="aiSend" class="chat-send-btn" type="button" title="发送">
-                <svg viewBox="0 0 24 24"><path d="M3 17.25V21l3.75-3.75L3 17.25zM21 3l-9 12.75L7.5 9 21 3z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
               </button>
             </div>
           </div>
@@ -1517,7 +1520,7 @@ function setChatStreamingState(streaming){
     if(continueBtn) continueBtn.style.display="none";
   }else if(aiPartial){
     // 暂停后 → 发送按钮恢复默认，继续按钮出现在右上角
-    sendButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 17.25V21l3.75-3.75L3 17.25zM21 3l-9 12.75L7.5 9 21 3z"/></svg>';
+    sendButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
     sendButton.title="发送";
     sendButton.onclick=sendAiMessage;
     if(continueBtn){
@@ -1526,7 +1529,7 @@ function setChatStreamingState(streaming){
     }
   }else{
     // 默认 → 发送按钮
-    sendButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 17.25V21l3.75-3.75L3 17.25zM21 3l-9 12.75L7.5 9 21 3z"/></svg>';
+    sendButton.innerHTML='<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
     sendButton.title="发送";
     sendButton.onclick=sendAiMessage;
     if(continueBtn) continueBtn.style.display="none";
