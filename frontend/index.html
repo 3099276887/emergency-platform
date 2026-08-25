@@ -574,8 +574,8 @@ function knowledgePage(){
       </div>
 
       <div class="field">
-        <label for="kbFileInput">上传 txt 文件（可多选）</label>
-        <input id="kbFileInput" type="file" accept=".txt,text/plain" multiple>
+        <label for="kbFileInput">上传文件（支持 .txt .docx .pdf，可多选）</label>
+        <input id="kbFileInput" type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" multiple>
       </div>
 
       <div class="field">
@@ -825,18 +825,18 @@ async function uploadKnowledgeFile(){
   const files=Array.from(input.files || []);
 
   if(files.length===0){
-    status.textContent="请先选择要上传的 txt 文件";
+    status.textContent="请先选择要上传的文件";
     status.className="note error";
     return;
   }
 
   const invalidFiles=files.filter(
-    file=>!/\.txt$/i.test(file.name)
+    file=>!/\.(txt|docx|pdf)$/i.test(file.name)
   );
 
   if(invalidFiles.length>0){
     status.textContent=
-      "以下文件不是 txt 格式："+invalidFiles
+      "以下文件格式不支持："+invalidFiles
         .map(file=>file.name)
         .join("、");
     status.className="note error";
