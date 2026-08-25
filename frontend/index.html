@@ -1502,6 +1502,31 @@ function setChatStreamingState(streaming){
 }
 
 let enableRAG = false;
+
+function renderImagePreview(){
+  const container=document.getElementById("chatImagePreview");
+  if(!container) return;
+  if(pendingImages.length===0){
+    container.style.display="none";
+    container.innerHTML="";
+    return;
+  }
+  container.style.display="flex";
+  container.innerHTML=pendingImages.map((img,i)=>`
+    <div class="img-thumb">
+      <img src="${escapeHtml(img.dataUrl)}" alt="${escapeHtml(img.name)}">
+      <button class="img-remove" data-idx="${i}" type="button">&times;</button>
+    </div>
+  `).join("");
+  container.querySelectorAll(".img-remove").forEach(btn=>{
+    btn.onclick=function(){
+      const idx=parseInt(this.dataset.idx);
+      pendingImages.splice(idx,1);
+      renderImagePreview();
+    };
+  });
+}
+
 async function sendAiMessage(){
   // 点"发送"始终开启新一轮对话
   const ragCheckbox=document.getElementById("ragToggle");
@@ -2863,30 +2888,6 @@ loadDocuments();
         alert("文档上传完成，已添加到知识库");
       }
     };
-  }
-
-  function renderImagePreview(){
-    const container=document.getElementById("chatImagePreview");
-    if(!container) return;
-    if(pendingImages.length===0){
-      container.style.display="none";
-      container.innerHTML="";
-      return;
-    }
-    container.style.display="flex";
-    container.innerHTML=pendingImages.map((img,i)=>`
-      <div class="img-thumb">
-        <img src="${escapeHtml(img.dataUrl)}" alt="${escapeHtml(img.name)}">
-        <button class="img-remove" data-idx="${i}" type="button">&times;</button>
-      </div>
-    `).join("");
-    container.querySelectorAll(".img-remove").forEach(btn=>{
-      btn.onclick=function(){
-        const idx=parseInt(this.dataset.idx);
-        pendingImages.splice(idx,1);
-        renderImagePreview();
-      };
-    });
   }
 
   const navToggle=document.getElementById("navToggle");
