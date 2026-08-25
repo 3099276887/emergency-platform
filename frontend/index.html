@@ -291,6 +291,19 @@ body.side-collapsed aside .law-subnav{display:none}
   border-radius:50%;animation:spin .8s linear infinite;
   vertical-align:middle;margin-right:6px;flex:0 0 auto;
 }
+
+/* AI 状态指示器 */
+.ai-status-bar{
+  display:flex;align-items:center;gap:6px;margin-left:16px;
+  font-size:12px;color:rgba(255,255,255,0.8);cursor:default;
+}
+.ai-status-dot{
+  width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+  background:#9aaab3;transition:background .3s;
+}
+.ai-status-dot.online{background:#4caf50}
+.ai-status-dot.busy{background:#ff9800}
+.ai-status-dot.offline{background:#f44336}
 </style>
 </head>
 <body>
@@ -302,6 +315,10 @@ body.side-collapsed aside .law-subnav{display:none}
   <strong>应急安全综合平台</strong>
 </div>
 <span>内网设备：192.168.10.101</span>
+<span id="aiStatusBar" class="ai-status-bar" title="AI 服务状态">
+  <span class="ai-status-dot" id="aiStatusDot"></span>
+  <span id="aiStatusText">检测中...</span>
+</span>
 </header>
 
 <div class="layout">
@@ -2511,6 +2528,52 @@ const scrollHandler=()=>{
 };
 window.addEventListener("scroll",scrollHandler,{passive:true});
 scrollHandler(); // 初始状态
+
+// AI 状态轮询
+async function fetchAiStatus(){
+  const dot=document.getElementById("aiStatusDot");
+  const text=document.getElementById("aiStatusText");
+  if(!dot || !text) return;
+
+  try{
+    const res=await fetch(API_BASE+"/health");
+    const health=await res.json();
+
+    if(health.status!=="ok"){
+      dot.className="ai-status-dot offline";
+      text.textContent="服务异常";
+      return;
+    }
+  }catch{
+    dot.className="ai-status-dot offline";
+    text.textContent="无法连接";
+    return;
+  }
+
+  try{
+    const res=await fetch(API_BASE+"/ai/status");
+    const ai=await res.json();
+    const busy=ai.qwen_busy || ai.qwen_chat_busy;
+    const reachable=ai.qwen_reachable && ai.qwen_chat_reachable;
+
+    if(reachable && !busy){
+      dot.className="ai-status-dot online";
+      text.textContent=ai.message || "AI 在线";
+    }else if(reachable && busy){
+      dot.className="ai-status-dot busy";
+      text.textContent="AI 繁忙";
+    }else{
+      dot.className="ai-status-dot offline";
+      text.textContent="AI 离线";
+    }
+  }catch{
+    dot.className="ai-status-dot offline";
+    text.textContent="AI 离线";
+  }
+}
+
+fetchAiStatus();
+setInterval(fetchAiStatus, 15000); // 每15秒刷新一次
 </script>
 </body>
 </html>
