@@ -107,16 +107,24 @@
         return;
       }
 
-      // 第一遍扫描：收集所有章标题，生成目录
+      // 第一遍扫描：收集所有章标题，去重（只保留正文中第二次出现的章节）
       const lines=text.split("\n");
       const chapters=[];
-      let chapterIdx=0;
-      for(const line of lines){
-        const trimmed=line.trim();
+      var seenChapters={};
+      var chapterIdx=0;
+      for(var li=0;li<lines.length;li++){
+        var trimmed=lines[li].trim();
         if(!trimmed) continue;
         if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
-          chapters.push({id:"ch"+chapterIdx,text:trimmed});
-          chapterIdx++;
+          if(seenChapters[trimmed]){
+            // 第二次出现，说明是正文中的章节，覆盖之前的条目
+            var idx=seenChapters[trimmed];
+            chapters[idx]={id:"ch"+idx,text:trimmed};
+          }else{
+            seenChapters[trimmed]=chapterIdx;
+            chapters.push({id:"ch"+chapterIdx,text:trimmed});
+            chapterIdx++;
+          }
         }
       }
 
@@ -126,7 +134,8 @@
       // 目录（如果有章节）
       if(chapters.length>0){
         html+=`<div class="toc"><div class="toc-title">目 录</div><ul class="toc-list">`;
-        for(const ch of chapters){
+        for(var ci=0;ci<chapters.length;ci++){
+          var ch=chapters[ci];
           html+=`<li><a href="javascript:void(0)" onclick="smoothScrollTo('${ch.id}',300);return false">${escapeHtml(ch.text)}</a></li>`;
         }
         html+=`</ul></div>`;
