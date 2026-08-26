@@ -125,17 +125,16 @@
         }
       }
 
-      // 从正文开始位置收集章标题
+      // 收集章标题（有目录节则从正文开始，否则从头扫）
       const chapters=[];
       var chapterIdx=0;
-      if(bodyStart>0){
-        for(var li=bodyStart;li<lines.length;li++){
-          var trimmed=lines[li].trim();
-          if(!trimmed) continue;
-          if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
-            chapters.push({id:"ch"+chapterIdx,text:trimmed});
-            chapterIdx++;
-          }
+      var tocStartLine=bodyStart>0 ? bodyStart : 0;
+      for(var li=tocStartLine;li<lines.length;li++){
+        var trimmed=lines[li].trim();
+        if(!trimmed) continue;
+        if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
+          chapters.push({id:"ch"+chapterIdx,text:trimmed});
+          chapterIdx++;
         }
       }
 
