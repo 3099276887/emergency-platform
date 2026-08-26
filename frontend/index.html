@@ -55,6 +55,33 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 .law-content{padding:20px 28px}
 .law-content h2{margin-top:0;color:#123b5d;font-size:22px;border-bottom:1px solid #9fb4c2;padding-bottom:10px}
 .law-list{min-height:300px}
+.law-item{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #e5e7eb;cursor:pointer;transition:background .12s}
+.law-item:hover{background:#f3f4f6}
+.law-item:last-child{border-bottom:none}
+.law-item-info{flex:1;min-width:0}
+.law-item-title{font-size:15px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.law-item-version{font-size:12px;color:#9ca3af;margin-top:2px}
+.law-item-actions{display:flex;gap:6px;flex-shrink:0;margin-left:12px}
+.law-item-actions button{padding:5px 12px;font-size:13px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;white-space:nowrap;transition:all .12s}
+.law-item-actions button:hover{background:#f3f4f6;border-color:#9ca3af}
+.law-item-actions .btn-view{background:#2563eb;color:#fff;border-color:#2563eb}
+.law-item-actions .btn-view:hover{background:#1d4ed8}
+.law-item-actions .btn-download{background:#059669;color:#fff;border-color:#059669}
+.law-item-actions .btn-download:hover{background:#047857}
+
+.law-detail-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.law-detail-header h2{flex:1;margin:0;font-size:20px;color:#1a1a1a}
+.law-detail-header .btn-back{padding:6px 14px;font-size:13px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;white-space:nowrap}
+.law-detail-header .btn-back:hover{background:#f3f4f6}
+.law-detail-header .btn-download{padding:6px 14px;font-size:13px;border-radius:6px;border:1px solid #059669;background:#059669;color:#fff;cursor:pointer;white-space:nowrap}
+.law-detail-header .btn-download:hover{background:#047857}
+.law-detail-date{font-size:13px;color:#6b7280;margin-bottom:16px}
+.law-detail-content{line-height:1.8;font-size:15px;color:#1a1a1a}
+.law-detail-chapter{font-weight:600;font-size:16px;margin:20px 0 10px;color:#1f2937}
+.law-detail-article{display:flex;gap:8px;margin:6px 0;padding:4px 0}
+.law-detail-article .art-num{font-weight:600;color:#2563eb;white-space:nowrap;min-width:5em}
+.law-detail-article .art-text{flex:1}
+.law-detail-paragraph{text-indent:2em;margin:4px 0}
 @media(max-width:700px){.law-layout{grid-template-columns:1fr}.law-menu{border-right:0;border-bottom:1px solid #d9e2e8}.law-menu button{display:inline-block;width:auto;padding:12px 14px}.law-content{padding:16px}}
 
 @media(max-width:700px){aside{width:150px}main{margin-left:150px;padding:16px}.status,.modules{grid-template-columns:1fr}.layout{min-height:calc(100vh - 64px)}}
@@ -727,12 +754,114 @@ function showLawCategory(category){
 
   title.textContent=titles[category] || "安全法律";
 
-  list.innerHTML=`
-    <div class="empty">
-      <strong>暂无真实法律法规数据</strong>
-      <span>当前分类尚未接入真实数据接口。</span>
-    </div>
-  `;
+  list.innerHTML=`<div class="empty"><strong>正在加载...</strong></div>`;
+
+  fetch(API_BASE+"/laws",{headers:{"Accept":"application/json"}})
+    .then(r=>r.json())
+    .then(data=>{
+      const items=data[category] || [];
+      if(items.length===0){
+        list.innerHTML=`<div class="empty"><strong>暂无法律法规数据</strong><span>该分类下暂未收录任何法律文件。</span></div>`;
+        return;
+      }
+      list.innerHTML=items.map(item=>`
+        <div class="law-item" data-law-id="${escapeHtml(item.id)}">
+          <div class="law-item-info">
+            <div class="law-item-title">${escapeHtml(item.title)}</div>
+            ${item.version ? `<div class="law-item-version">${escapeHtml(item.version)}</div>` : ""}
+          </div>
+          <div class="law-item-actions">
+            <button class="btn-view" onclick="event.stopPropagation();showLawDetail('${escapeHtml(item.id)}')">查看</button>
+            <button class="btn-download" onclick="event.stopPropagation();downloadLaw('${escapeHtml(item.id)}','${escapeHtml(item.title)}')">下载</button>
+          </div>
+        </div>
+      `).join("");
+
+      // 点击行任意位置触发查看
+      list.querySelectorAll(".law-item").forEach(row=>{
+        row.onclick=function(){
+          const id=this.dataset.lawId;
+          if(id) showLawDetail(id);
+        };
+      });
+    })
+    .catch(err=>{
+      list.innerHTML=`<div class="empty"><strong>加载失败</strong><span>${escapeHtml(err.message)}</span></div>`;
+    });
+}
+
+function showLawDetail(lawId){
+  const list=document.getElementById("lawList");
+  if(!list) return;
+
+  list.innerHTML=`<div class="empty"><strong>正在加载法律全文...</strong></div>`;
+
+  fetch(API_BASE+"/laws/"+encodeURIComponent(lawId),{headers:{"Accept":"application/json"}})
+    .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+    .then(law=>{
+      const title=document.getElementById("lawTitle");
+      if(title) title.textContent=law.title || "法律详情";
+
+      const dateHtml=law.date ? `<div class="law-detail-date">${escapeHtml(law.date)}</div>` : "";
+
+      let contentHtml="";
+      if(law.content && law.content.length>0){
+        contentHtml=law.content.map(block=>{
+          if(block.type==="chapter"){
+            return `<div class="law-detail-chapter">${escapeHtml(block.name)}</div>`;
+          }else if(block.type==="article"){
+            return `<div class="law-detail-article"><span class="art-num">${escapeHtml(block.name)}</span><span class="art-text">${escapeHtml(block.text)}</span></div>`;
+          }else if(block.type==="paragraph"){
+            return `<div class="law-detail-paragraph">${escapeHtml(block.text)}</div>`;
+          }
+          return "";
+        }).join("\n");
+      }else{
+        contentHtml=`<div class="empty"><strong>暂无内容</strong></div>`;
+      }
+
+      list.innerHTML=`
+        <div class="law-detail-header">
+          <button class="btn-back" onclick="showLawCategory('${escapeHtml(law.category)}')">← 返回</button>
+          <h2>${escapeHtml(law.title)}</h2>
+          <button class="btn-download" onclick="downloadLaw('${escapeHtml(law.id)}','${escapeHtml(law.title)}')">下载</button>
+        </div>
+        ${dateHtml}
+        <div class="law-detail-content">${contentHtml}</div>
+      `;
+    })
+    .catch(err=>{
+      list.innerHTML=`<div class="empty"><strong>加载失败</strong><span>${escapeHtml(err.message)}</span></div>`;
+    });
+}
+
+function downloadLaw(lawId,title){
+  const apiBase=API_BASE;
+  const url=apiBase+"/laws/"+encodeURIComponent(lawId);
+  const filename=(title || lawId).replace(/[\\/:*?"<>|]/g,"_")+".txt";
+
+  fetch(url,{headers:{"Accept":"application/json"}})
+    .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+    .then(law=>{
+      const lines=[law.title||"",law.date||"",""];
+      if(law.content){
+        for(const block of law.content){
+          if(block.type==="chapter") lines.push("\n"+block.name);
+          else if(block.type==="article") lines.push(block.name+" "+block.text);
+          else if(block.type==="paragraph") lines.push(block.text);
+        }
+      }
+      const text=lines.join("\n");
+      const blob=new Blob([text],{type:"text/plain;charset=utf-8"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download=filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(err=>{alert("下载失败: "+err.message);});
 }
 
 function formatFileSize(bytes){
