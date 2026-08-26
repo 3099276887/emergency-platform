@@ -535,7 +535,8 @@ function renderNav(){
       const lawItems=[
         ["national","国家法律"],
         ["administrative","行政法规"],
-        ["local","地方法规"]
+        ["local","地方法规"],
+        ["pending","暂定"]
       ];
 
       html+=`
@@ -739,10 +740,18 @@ function knowledgePage(){
 }
 
 function showLawCategory(category){
+  // 分类键 → 数据库中文 file_type 映射
+  const categoryToFileType={
+    national:"国家法律",
+    administrative:"行政法规",
+    local:"地方法规",
+    pending:"暂定"
+  };
   const titles={
     national:"国家法律",
     administrative:"行政法规",
-    local:"地方法规"
+    local:"地方法规",
+    pending:"暂定"
   };
 
   const title=document.getElementById("lawTitle");
@@ -756,26 +765,42 @@ function showLawCategory(category){
 
   list.innerHTML=`<div class="empty"><strong>正在加载...</strong></div>`;
 
-  fetch(API_BASE+"/laws",{headers:{"Accept":"application/json"}})
+  // 调用知识库列表接口，按 file_type 筛选（从数据库获取，不需要 laws_api）
+  const fileType=categoryToFileType[category];
+  const url=API_BASE+"/files"+(fileType ? `?file_type=${encodeURIComponent(fileType)}` : "");
+
+  fetch(url,{headers:{"Accept":"application/json"}})
     .then(r=>r.json())
-    .then(data=>{
-      const items=data[category] || [];
-      if(items.length===0){
+    .then(files=>{
+      if(files.length===0){
         list.innerHTML=`<div class="empty"><strong>暂无法律法规数据</strong><span>该分类下暂未收录任何法律文件。</span></div>`;
         return;
       }
-      list.innerHTML=items.map(item=>`
-        <div class="law-item" data-law-id="${escapeHtml(item.id)}">
+      // 从文件名提取版本日期（_YYYYMMDD）
+      function extractVersion(stem){
+        const m=stem.match(/_(\d{8})$/);
+        return m ? m[1] : "";
+      }
+      list.innerHTML=files.map(file=>{
+        const filename=file.filename;
+        const stem=filename.replace(/\.[^.]+$/,"");
+        const version=extractVersion(stem);
+        // 保留原 ID 格式：category:filename
+        const lawId=`${category}:${filename}`;
+        const displayTitle=stem.replace(/_(\d{8})$/,""); // 去掉版本后缀显示
+        return `
+        <div class="law-item" data-law-id="${escapeHtml(lawId)}">
           <div class="law-item-info">
-            <div class="law-item-title">${escapeHtml(item.title)}</div>
-            ${item.version ? `<div class="law-item-version">${escapeHtml(item.version)}</div>` : ""}
+            <div class="law-item-title">${escapeHtml(displayTitle)}</div>
+            ${version ? `<div class="law-item-version">${escapeHtml(version)}</div>` : ""}
           </div>
           <div class="law-item-actions">
-            <button class="btn-view" onclick="event.stopPropagation();showLawDetail('${escapeHtml(item.id)}')">查看</button>
-            <button class="btn-download" onclick="event.stopPropagation();downloadLaw('${escapeHtml(item.id)}','${escapeHtml(item.title)}')">下载</button>
+            <button class="btn-view" onclick="event.stopPropagation();showLawDetail('${escapeHtml(lawId)}')">查看</button>
+            <button class="btn-download" onclick="event.stopPropagation();downloadLawFromFile('${escapeHtml(filename)}','${escapeHtml(displayTitle)}')">下载</button>
           </div>
         </div>
-      `).join("");
+      `;
+      }).join("");
 
       // 点击行任意位置触发查看
       list.querySelectorAll(".law-item").forEach(row=>{
@@ -794,39 +819,50 @@ function showLawDetail(lawId){
   const list=document.getElementById("lawList");
   if(!list) return;
 
+  // lawId 格式：category:filename.后缀（如 national:安全生产法_20210610.txt）
+  const sepIdx=lawId.indexOf(":");
+  if(sepIdx===-1) return;
+  const category=lawId.substring(0,sepIdx);
+  const filename=lawId.substring(sepIdx+1);
+
   list.innerHTML=`<div class="empty"><strong>正在加载法律全文...</strong></div>`;
 
-  fetch(API_BASE+"/laws/"+encodeURIComponent(lawId),{headers:{"Accept":"application/json"}})
+  fetch(API_BASE+"/files/"+encodeURIComponent(filename),{headers:{"Accept":"application/json"}})
     .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
-    .then(law=>{
+    .then(file=>{
       const title=document.getElementById("lawTitle");
-      if(title) title.textContent=law.title || "法律详情";
+      if(title) title.textContent=filename.replace(/\.[^.]+$/,"") || "法律详情";
 
-      const dateHtml=law.date ? `<div class="law-detail-date">${escapeHtml(law.date)}</div>` : "";
-
+      // 原文按行渲染
       let contentHtml="";
-      if(law.content && law.content.length>0){
-        contentHtml=law.content.map(block=>{
-          if(block.type==="chapter"){
-            return `<div class="law-detail-chapter">${escapeHtml(block.name)}</div>`;
-          }else if(block.type==="article"){
-            return `<div class="law-detail-article"><span class="art-num">${escapeHtml(block.name)}</span><span class="art-text">${escapeHtml(block.text)}</span></div>`;
-          }else if(block.type==="paragraph"){
-            return `<div class="law-detail-paragraph">${escapeHtml(block.text)}</div>`;
+      const text=file.content || "";
+      if(text){
+        contentHtml=text.split("\n").map(line=>{
+          const trimmed=line.trim();
+          if(!trimmed) return "";
+          // 章标题
+          if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
+            return `<div class="law-detail-chapter">${escapeHtml(trimmed)}</div>`;
           }
-          return "";
-        }).join("\n");
+          // 条标题
+          if(/^第[一二三四五六七八九十百千万0-9]+条/.test(trimmed)){
+            const m=trimmed.match(/^(第[一二三四五六七八九十百千万0-9]+条)\s*(.*)/);
+            if(m){
+              return `<div class="law-detail-article"><span class="art-num">${escapeHtml(m[1])}</span><span class="art-text">${escapeHtml(m[2])}</span></div>`;
+            }
+          }
+          return `<div class="law-detail-paragraph">${escapeHtml(trimmed)}</div>`;
+        }).filter(Boolean).join("\n");
       }else{
         contentHtml=`<div class="empty"><strong>暂无内容</strong></div>`;
       }
 
       list.innerHTML=`
         <div class="law-detail-header">
-          <button class="btn-back" onclick="showLawCategory('${escapeHtml(law.category)}')">← 返回</button>
-          <h2>${escapeHtml(law.title)}</h2>
-          <button class="btn-download" onclick="downloadLaw('${escapeHtml(law.id)}','${escapeHtml(law.title)}')">下载</button>
+          <button class="btn-back" onclick="showLawCategory('${escapeHtml(category)}')">← 返回</button>
+          <h2>${escapeHtml(filename.replace(/\.[^.]+$/,""))}</h2>
+          <button class="btn-download" onclick="downloadLawFromFile('${escapeHtml(filename)}','${escapeHtml(filename.replace(/\.[^.]+$/,""))}')">下载</button>
         </div>
-        ${dateHtml}
         <div class="law-detail-content">${contentHtml}</div>
       `;
     })
@@ -835,27 +871,19 @@ function showLawDetail(lawId){
     });
 }
 
-function downloadLaw(lawId,title){
+function downloadLawFromFile(filename,displayTitle){
   const apiBase=API_BASE;
-  const url=apiBase+"/laws/"+encodeURIComponent(lawId);
-  const filename=(title || lawId).replace(/[\\/:*?"<>|]/g,"_")+".txt";
+  const url=apiBase+"/files/"+encodeURIComponent(filename);
+  const saveName=(displayTitle || filename).replace(/[\\/:*?"<>|]/g,"_")+".txt";
 
   fetch(url,{headers:{"Accept":"application/json"}})
     .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
-    .then(law=>{
-      const lines=[law.title||"",law.date||"",""];
-      if(law.content){
-        for(const block of law.content){
-          if(block.type==="chapter") lines.push("\n"+block.name);
-          else if(block.type==="article") lines.push(block.name+" "+block.text);
-          else if(block.type==="paragraph") lines.push(block.text);
-        }
-      }
-      const text=lines.join("\n");
+    .then(file=>{
+      const text=file.content || "";
       const blob=new Blob([text],{type:"text/plain;charset=utf-8"});
       const a=document.createElement("a");
       a.href=URL.createObjectURL(blob);
-      a.download=filename;
+      a.download=saveName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
