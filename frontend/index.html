@@ -801,9 +801,10 @@ function showLawCategory(category){
       `;
       }).join("");
 
-      // 点击行任意位置打开新窗口
+      // 点击行任意位置打开新窗口（排除点击按钮/链接的情况）
       list.querySelectorAll(".law-item").forEach(row=>{
-        row.onclick=function(){
+        row.onclick=function(e){
+          if(e.target.closest("a,button")) return;
           const firstLink=row.querySelector(".btn-view");
           if(firstLink && firstLink.href){
             window.open(firstLink.href, "_blank");

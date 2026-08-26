@@ -6,10 +6,9 @@
 <title>法律详情</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f5f5f5;color:#1a1a1a;line-height:1.8}
-  .container{max-width:900px;margin:0 auto;padding:24px 20px}
-  .header{background:#fff;border-radius:12px;padding:24px 28px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:12px;z-index:10}
+  .container{max-width:900px;margin:0 auto;padding:0 20px 24px}
+  .header{background:#fff;border-radius:12px;padding:20px 28px;margin-bottom:20px;margin-top:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
   .header h1{font-size:20px;font-weight:600;flex:1;min-width:0;word-break:break-all}
   .btn-back,.btn-download{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:14px;cursor:pointer;border:none;text-decoration:none;transition:background .15s}
   .btn-back{background:#e8e8e8;color:#333}
@@ -22,10 +21,8 @@
   .loading .spinner{display:inline-block;width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#1a73e8;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* 章标题 — 可点击跳转 */
-  .law-detail-chapter{font-size:17px;font-weight:600;color:#1a1a1a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #eee;cursor:pointer;transition:color .12s}
-  .law-detail-chapter:hover{color:#1a73e8}
-  .law-detail-chapter::before{content:"# ";color:#1a73e8;opacity:.5;font-size:14px}
+  /* 章标题 — 带锚点，滚动避开 sticky header */
+  .law-detail-chapter{font-size:17px;font-weight:600;color:#1a1a1a;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #eee;scroll-margin-top:80px}
 
   .law-detail-article{display:flex;gap:12px;margin:8px 0;padding:4px 0;align-items:flex-start}
   .art-num{white-space:nowrap;font-weight:600;color:#1a73e8;min-width:4em;font-size:15px}
@@ -46,7 +43,7 @@
   .back-to-top{position:fixed;bottom:32px;right:32px;width:44px;height:44px;border-radius:50%;background:#1a73e8;color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.2);display:none;align-items:center;justify-content:center;transition:all .2s;z-index:100}
   .back-to-top:hover{background:#1557b0;transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 
-  @media(max-width:600px){.container{padding:12px 10px}.header{padding:14px;flex-direction:column;align-items:stretch;top:6px;gap:8px}.content{padding:20px 14px}.header h1{font-size:17px}.back-to-top{bottom:16px;right:16px;width:40px;height:40px;font-size:18px}}
+  @media(max-width:600px){.container{padding:0 10px 16px}.header{padding:14px 16px;margin-top:8px;flex-direction:column;align-items:stretch;gap:8px}.content{padding:20px 14px}.header h1{font-size:17px}.back-to-top{bottom:16px;right:16px;width:40px;height:40px;font-size:18px}}
 </style>
 </head>
 <body>
@@ -64,7 +61,7 @@
   </div>
 </div>
 
-<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">&#8593;</button>
+<button class="back-to-top" id="backToTop" title="回到顶部">&#8593;</button>
 
 <script>
 (function(){
@@ -94,6 +91,9 @@
   window.addEventListener("scroll",function(){
     backToTopBtn.style.display=window.scrollY>400 ? "flex" : "none";
   });
+
+  // 回到顶部按钮
+  backToTopBtn.onclick=function(){ smoothScrollTo(0, 300); };
 
   fetch(API_BASE+"/files/"+encodeURIComponent(filename),{headers:{"Accept":"application/json"}})
     .then(r=>{
@@ -127,7 +127,7 @@
       if(chapters.length>0){
         html+=`<div class="toc"><div class="toc-title">目 录</div><ul class="toc-list">`;
         for(const ch of chapters){
-          html+=`<li><a href="#${encodeURIComponent(ch.id)}">${escapeHtml(ch.text)}</a></li>`;
+          html+=`<li><a href="javascript:void(0)" onclick="smoothScrollTo('${ch.id}',300);return false">${escapeHtml(ch.text)}</a></li>`;
         }
         html+=`</ul></div>`;
       }
@@ -140,8 +140,8 @@
         // 章标题
         if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
           const id="ch"+chapterIdx;
-          // 点击章标题跳转到本页面的该章位置（锚点自身）
-          html+=`<div class="law-detail-chapter" id="${id}" onclick="location.href='#${id}'" title="点击复制链接">${escapeHtml(trimmed)}</div>`;
+          // 只加id，不需要点击跳转（目录已经跳转了）
+          html+=`<div class="law-detail-chapter" id="${id}">${escapeHtml(trimmed)}</div>`;
           chapterIdx++;
           continue;
         }
@@ -191,6 +191,23 @@
 function closeWindow(){
   // 新标签页打开的，没有历史记录，直接关闭
   window.close();
+}
+
+/* 自定义平滑滚动，duration 毫秒，速度快 */
+function smoothScrollTo(target, duration){
+  var startY=window.scrollY || window.pageYOffset;
+  var targetY=typeof target==="number" ? target : document.getElementById(target).getBoundingClientRect().top+startY-80;
+  var startTime=null;
+  function step(timestamp){
+    if(!startTime) startTime=timestamp;
+    var elapsed=timestamp-startTime;
+    var progress=Math.min(elapsed/duration,1);
+    // easeOutQuad: 先快后慢
+    var ease=progress*(2-progress);
+    window.scrollTo(0,startY+(targetY-startY)*ease);
+    if(progress<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 </script>
 </body>
