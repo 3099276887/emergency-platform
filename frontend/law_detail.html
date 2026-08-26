@@ -184,9 +184,7 @@
 
   function escapeHtml(str){
     if(typeof str!=="string") return "";
-    const div=document.createElement("div");
-    div.textContent=str;
-    return div.innerHTML;
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
   function downloadLaw(fname){
