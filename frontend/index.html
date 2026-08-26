@@ -64,7 +64,7 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 .law-item-actions{display:flex;gap:6px;flex-shrink:0;margin-left:12px}
 .law-item-actions button{padding:5px 12px;font-size:13px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;white-space:nowrap;transition:all .12s}
 .law-item-actions button:hover{background:#f3f4f6;border-color:#9ca3af}
-.law-item-actions .btn-view{background:#2563eb;color:#fff;border-color:#2563eb}
+.law-item-actions .btn-view{display:inline-flex;align-items:center;padding:5px 12px;font-size:13px;border-radius:6px;border:1px solid #2563eb;background:#2563eb;color:#fff;cursor:pointer;white-space:nowrap;text-decoration:none;transition:all .12s}
 .law-item-actions .btn-view:hover{background:#1d4ed8}
 .law-item-actions .btn-download{background:#059669;color:#fff;border-color:#059669}
 .law-item-actions .btn-download:hover{background:#047857}
@@ -785,28 +785,29 @@ function showLawCategory(category){
         const filename=file.filename;
         const stem=filename.replace(/\.[^.]+$/,"");
         const version=extractVersion(stem);
-        // 保留原 ID 格式：category:filename
-        const lawId=`${category}:${filename}`;
         const displayTitle=stem.replace(/_(\d{8})$/,""); // 去掉版本后缀显示
+        const url=`law_detail.html?filename=${encodeURIComponent(filename)}&category=${encodeURIComponent(category)}&title=${encodeURIComponent(displayTitle)}`;
         return `
-        <div class="law-item" data-law-id="${escapeHtml(lawId)}">
+        <div class="law-item">
           <div class="law-item-info">
             <div class="law-item-title">${escapeHtml(displayTitle)}</div>
             ${version ? `<div class="law-item-version">${escapeHtml(version)}</div>` : ""}
           </div>
           <div class="law-item-actions">
-            <button class="btn-view" onclick="event.stopPropagation();showLawDetail('${escapeHtml(lawId)}')">查看</button>
+            <a href="${url}" target="_blank" class="btn-view">查看</a>
             <button class="btn-download" onclick="event.stopPropagation();downloadLawFromFile('${escapeHtml(filename)}','${escapeHtml(displayTitle)}')">下载</button>
           </div>
         </div>
       `;
       }).join("");
 
-      // 点击行任意位置触发查看
+      // 点击行任意位置打开新窗口
       list.querySelectorAll(".law-item").forEach(row=>{
         row.onclick=function(){
-          const id=this.dataset.lawId;
-          if(id) showLawDetail(id);
+          const firstLink=row.querySelector(".btn-view");
+          if(firstLink && firstLink.href){
+            window.open(firstLink.href, "_blank");
+          }
         };
       });
     })
