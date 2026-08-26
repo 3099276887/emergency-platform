@@ -107,21 +107,32 @@
         return;
       }
 
-      // 第一遍扫描：收集所有章标题，去重（只保留正文中第二次出现的章节）
+      // 第一遍扫描：找到正文开始位置（第一个重复出现的章标题标志着目录结束、正文开始）
       const lines=text.split("\n");
-      const chapters=[];
-      var seenChapters={};
-      var chapterIdx=0;
+      var bodyStart=-1;
+      var seen={};
       for(var li=0;li<lines.length;li++){
         var trimmed=lines[li].trim();
         if(!trimmed) continue;
         if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
-          if(seenChapters[trimmed]){
-            // 第二次出现，说明是正文中的章节，覆盖之前的条目
-            var idx=seenChapters[trimmed];
-            chapters[idx]={id:"ch"+idx,text:trimmed};
-          }else{
-            seenChapters[trimmed]=chapterIdx;
+          // 归一化比较（去掉全角空格等差异）
+          var norm=trimmed.replace(/[\s\u3000]+/g,"");
+          if(seen[norm]){
+            bodyStart=li;
+            break;
+          }
+          seen[norm]=true;
+        }
+      }
+
+      // 从正文开始位置收集章标题
+      const chapters=[];
+      var chapterIdx=0;
+      if(bodyStart>0){
+        for(var li=bodyStart;li<lines.length;li++){
+          var trimmed=lines[li].trim();
+          if(!trimmed) continue;
+          if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
             chapters.push({id:"ch"+chapterIdx,text:trimmed});
             chapterIdx++;
           }
@@ -141,10 +152,11 @@
         html+=`</ul></div>`;
       }
 
-      // 正文
+      // 正文（从 bodyStart 开始，跳过"目 录"节）
       chapterIdx=0;
-      for(const line of lines){
-        const trimmed=line.trim();
+      var startLine=bodyStart>0 ? bodyStart : 0;
+      for(var li=startLine;li<lines.length;li++){
+        var trimmed=lines[li].trim();
         if(!trimmed) continue;
         // 章标题
         if(/^第[一二三四五六七八九十百千万0-9]+章/.test(trimmed)){
