@@ -460,40 +460,8 @@ function loadChat(){
   }
 }
 
-function getRequestMessages(){
-  const systemMessage=chatMessages.find(
-    message=>message.role==="system"
-  );
-
-  const history=chatMessages
-    .filter(message=>message.role!=="system")
-    .slice(-20);
-
-  return [
-    ...(systemMessage ? [systemMessage] : []),
-    ...history
-  ];
-}
-
-function getContinueRequestMessages(){
-  // 续写时：保留已生成的部分回答作为上下文，并显式指示模型“继续”，避免其重新开始
-  const systemMessage=chatMessages.find(
-    message=>message.role==="system"
-  );
-
-  const history=chatMessages
-    .filter(message=>message.role!=="system")
-    .slice(-20);
-
-  return [
-    ...(systemMessage ? [systemMessage] : []),
-    ...history,
-    {
-      role:"user",
-      content:"请接着上面我的回答继续往下写，从最后一个字之后接着写，不要重复、不要重新开始。"
-    }
-  ];
-}
+// 后端使用 KV cache 在引擎侧维护当前会话上下文，前端每次只发当前轮内容，不再全量重发历史。
+// 同会话内图片只在首轮编码一次、后续追问增量续；开新会话必须调 /api/v1/chat/session/clear。
 
 function renderNav(){
   nav.innerHTML=Object.entries(modules).map(([key,item])=>{
@@ -1600,7 +1568,7 @@ async function sendAiMessage(){
 
   input.value=""; // 点击发送后立即清空输入框
   input.style.height="auto"; // 重置输入框高度
-  await startAiStream(false);
+  await startAiStream(false, content);
 }
 
 async function resumeAiMessage(){
@@ -1609,10 +1577,10 @@ async function resumeAiMessage(){
   if(ragCheckbox){ enableRAG=ragCheckbox.checked; }
   aiPartial = null;
   aiCleared = false;
-  await startAiStream(true);
+  await startAiStream(true, "请接着上面我的回答继续往下写，从最后一个字之后接着写，不要重复、不要重新开始。");
 }
 
-async function startAiStream(continuing){
+async function startAiStream(continuing, currentContent){
   aiAbortController = new AbortController();
   const input=document.getElementById("aiInput");
   const log=document.getElementById("chatLog");
@@ -1661,7 +1629,7 @@ async function startAiStream(continuing){
         signal: aiAbortController.signal,
         body:JSON.stringify({
           model:"tpu-qwen3.5",
-          messages: continuing ? getContinueRequestMessages() : getRequestMessages(),
+          messages:[{role:"user",content: currentContent}],
           stream:true,
           temperature:0.7,
           max_tokens:2048,
@@ -2822,10 +2790,17 @@ loadDocuments();
 
   const clearButton=document.getElementById("clearChat");
   if(clearButton){
-    clearButton.onclick=()=>{
+    clearButton.onclick=async()=>{
       if(aiAbortController){
         aiCleared = true;
         aiAbortController.abort();
+      }
+
+      // 重置后端 KV cache，避免旧会话上下文污染新会话
+      try{
+        await fetch("/api/v1/chat/session/clear",{method:"POST",signal:AbortSignal.timeout(5000)});
+      }catch(e){
+        console.warn("重置后端会话失败",e);
       }
 
       aiPartial = null;
