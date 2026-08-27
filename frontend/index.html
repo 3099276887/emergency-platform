@@ -707,6 +707,11 @@ function knowledgePage(){
         </select>
       </div>
 
+      <div class="field" id="kbRegionField" style="display:none">
+        <label for="kbRegionInput">所属地区 <span style="color:#c94135">*</span></label>
+        <input id="kbRegionInput" type="text" placeholder="例如：上海、北京、安徽" style="max-width:300px">
+      </div>
+
       <button id="kbUploadBtn" class="btn">上传并建立索引</button>
       <p id="kbStatus" class="note"></p>
 
@@ -725,6 +730,7 @@ function knowledgePage(){
           <option value="ready">就绪</option>
           <option value="failed">失败</option>
         </select>
+        <input id="kbRegionFilter" type="text" placeholder="按地区筛选">
         <button id="kbSearchBtn" class="btn-secondary">查询</button>
       </div>
 
@@ -928,10 +934,12 @@ async function loadKnowledgeFiles(){
   const keywordInput=document.getElementById("kbKeywordInput");
   const typeInput=document.getElementById("kbTypeFilterInput");
   const statusInput=document.getElementById("kbStatusFilter");
+  const regionInput=document.getElementById("kbRegionFilter");
 
   const keyword=keywordInput ? keywordInput.value.trim() : "";
   const fileType=typeInput ? typeInput.value.trim() : "";
   const statusValue=statusInput ? statusInput.value : "";
+  const regionValue=regionInput ? regionInput.value.trim() : "";
 
   const params=new URLSearchParams();
 
@@ -945,6 +953,10 @@ async function loadKnowledgeFiles(){
 
   if(statusValue){
     params.set("status",statusValue);
+  }
+
+  if(regionValue){
+    params.set("region",regionValue);
   }
 
   const query=params.toString();
@@ -985,6 +997,11 @@ async function loadKnowledgeFiles(){
         <div class="data-task-main">
           <strong>${escapeHtml(file.filename || "未命名文件")}</strong>
           <span>类型：${escapeHtml(file.file_type || "—")}</span>
+          ${
+            file.region
+              ? `<span>地区：${escapeHtml(file.region)}</span>`
+              : ""
+          }
           <span>大小：${escapeHtml(formatFileSize(file.size))}</span>
           <span>分块数：${escapeHtml(file.chunk_count ?? 0)}</span>
           <span>更新时间：${escapeHtml(formatTime(file.updated_at) || "—")}</span>
@@ -1072,6 +1089,7 @@ function resetKnowledgeFilters(){
   const keyword=document.getElementById("kbKeywordInput");
   const type=document.getElementById("kbTypeFilterInput");
   const status=document.getElementById("kbStatusFilter");
+  const region=document.getElementById("kbRegionFilter");
 
   if(keyword){
     keyword.value="";
@@ -1083,6 +1101,10 @@ function resetKnowledgeFilters(){
 
   if(status){
     status.value="";
+  }
+
+  if(region){
+    region.value="";
   }
 
   loadKnowledgeFiles();
@@ -1161,6 +1183,12 @@ async function uploadKnowledgeFile(){
 
       if(fileType){
         formData.append("file_type",fileType);
+      }
+
+      const regionInput=document.getElementById("kbRegionInput");
+      const regionValue=regionInput ? regionInput.value.trim() : "";
+      if(regionValue){
+        formData.append("region",regionValue);
       }
 
       try{
@@ -1465,6 +1493,16 @@ function documentsPage(){
             documentState.outputFilename || "安全分析报告"
           )}"
           placeholder="例如：安全分析报告"
+        >
+      </div>
+
+      <div class="field">
+        <label for="docRegionInput">适用地区（可选，限定地方法规检索范围）</label>
+        <input
+          id="docRegionInput"
+          type="text"
+          placeholder="例如：上海、北京、安徽"
+          style="max-width:300px"
         >
       </div>
 
@@ -1948,6 +1986,8 @@ async function processDocument(){
   const originalText=document.getElementById("documentContent").value.trim();
   const requirements=document.getElementById("instruction").value.trim();
   const outputFilename=document.getElementById("fileName").value.trim();
+  const docRegionInput=document.getElementById("docRegionInput");
+  const region=docRegionInput ? docRegionInput.value.trim() : "";
 
   const button=document.getElementById("processBtn");
   const status=document.getElementById("documentStatus");
@@ -1980,7 +2020,8 @@ async function processDocument(){
         task_type:taskType,
         original_text:originalText,
         requirements:requirements,
-        output_filename:outputFilename
+        output_filename:outputFilename,
+        ...(region ? {region} : {})
       })
     });
 
@@ -2929,6 +2970,16 @@ if(kbRefreshButton){
 const kbUploadButton=document.getElementById("kbUploadBtn");
 if(kbUploadButton){
   kbUploadButton.onclick=uploadKnowledgeFile;
+}
+
+const kbFileTypeSelect=document.getElementById("kbFileTypeInput");
+if(kbFileTypeSelect){
+  kbFileTypeSelect.onchange=function(){
+    const regionField=document.getElementById("kbRegionField");
+    if(regionField){
+      regionField.style.display=this.value==="地方法规" ? "" : "none";
+    }
+  };
 }
 
 const kbBatchDeleteBtn=document.getElementById("kbBatchDeleteBtn");
