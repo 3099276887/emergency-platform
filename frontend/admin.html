@@ -3,65 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>系统监控面板</title>
+<title>系统监控 - 应急管理平台</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
-  .header{background:#1a1a2e;color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-  .header h1{font-size:20px;font-weight:600}
-  .header-right{display:flex;align-items:center;gap:12px;font-size:13px}
-  .header-right label{display:flex;align-items:center;gap:6px;cursor:pointer}
-  .header-right input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
-  .refresh-btn{background:#4361ee;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;transition:background .2s}
-  .refresh-btn:hover{background:#3a56d4}
-  .refresh-btn:disabled{opacity:.6;cursor:not-allowed}
-  .container{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:20px}
-  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-  .card-title{font-size:14px;font-weight:600;color:#666;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-  .card-title .icon{font-size:18px}
-  .status-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
-  .status-row:last-child{border-bottom:none}
-  .status-label{color:#555}
-  .status-value{display:flex;align-items:center;gap:8px;font-weight:500}
-  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
-  .dot.ok{background:#2ecc71}
-  .dot.fail{background:#e74c3c}
-  .dot.degraded{background:#f39c12}
-  .stat-number{font-size:28px;font-weight:700;line-height:1.2}
-  .stat-number.green{color:#2ecc71}
-  .stat-number.red{color:#e74c3c}
-  .stat-number.orange{color:#f39c12}
-  .stat-number.blue{color:#4361ee}
-  .stat-label{font-size:12px;color:#999;margin-top:2px}
-  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center}
-  .status-dist{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  .dist-tag{display:flex;align-items:center;gap:6px;background:#f5f5f5;border-radius:6px;padding:4px 10px;font-size:13px}
-  .dist-tag .count{font-weight:700}
-  .bar-container{display:flex;height:8px;border-radius:4px;overflow:hidden;background:#eee;margin-top:12px}
-  .bar-segment{transition:width .5s ease}
-  .last-update{text-align:center;color:#999;font-size:13px;margin-top:12px}
-  .loading{text-align:center;color:#999;padding:20px;font-size:14px}
-  .error-msg{background:#fff0f0;border:1px solid #ffd4d4;border-radius:8px;padding:12px 16px;color:#c0392b;font-size:13px;margin-bottom:12px;display:none}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;background:#f5f6f8;color:#222;min-height:100vh}
+  a{color:#2563eb;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* 顶部导航 */
+  .topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .topbar h1{font-size:16px;font-weight:600;color:#111}
+  .topbar-left{display:flex;align-items:center;gap:12px}
+  .topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:#666}
+  .topbar-right label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  .topbar-right input[type="checkbox"]{width:15px;height:15px;cursor:pointer}
+  .countdown{font-variant-numeric:tabular-nums;min-width:48px;color:#999}
+  .refresh-btn{background:#f3f4f6;color:#333;border:1px solid #d1d5db;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:13px;transition:background .15s}
+  .refresh-btn:hover{background:#e5e7eb}
+  .refresh-btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .container{max-width:1200px;margin:0 auto;padding:20px 24px 60px}
+
+  /* 错误提示 */
+  .error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 16px;color:#b91c1c;font-size:13px;margin-bottom:16px;display:none}
   .error-msg.show{display:block}
-  .url-text{font-size:12px;color:#999;word-break:break-all;font-family:monospace;margin-top:2px}
+
+  /* 快捷链接 */
+  .quick-links{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .quick-link{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:7px 14px;font-size:13px;color:#333;transition:border-color .15s,box-shadow .15s}
+  .quick-link:hover{text-decoration:none;border-color:#2563eb;box-shadow:0 0 0 1px #2563eb}
+  .quick-link svg{width:14px;height:14px;flex-shrink:0;opacity:.6}
+
+  /* 总览统计行 */
+  .summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+  .summary-card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px}
+  .summary-card .label{font-size:12px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+  .summary-card .value{font-size:24px;font-weight:700;line-height:1.2}
+  .summary-card .sub{font-size:12px;color:#999;margin-top:2px}
+  .summary-card .value.green{color:#16a34a}
+  .summary-card .value.red{color:#dc2626}
+  .summary-card .value.orange{color:#ea580c}
+  .summary-card .value.blue{color:#2563eb}
+  .summary-card .value.gray{color:#6b7280}
+
+  /* 网格卡片 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-bottom:16px}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+  .card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:14px;font-weight:600;color:#333}
+  .card-body{padding:12px 16px 16px}
+
+  .status-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+  .status-row:last-child{border-bottom:none}
+  .status-label{color:#666}
+  .status-value{display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+  .dot.ok{background:#16a34a}
+  .dot.fail{background:#dc2626}
+  .dot.degraded{background:#ea580c}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+  .stat-grid .num{font-size:22px;font-weight:700;line-height:1.2}
+  .stat-grid .lbl{font-size:11px;color:#888;margin-top:2px}
+  .stat-grid .num.green{color:#16a34a}
+  .stat-grid .num.red{color:#dc2626}
+  .stat-grid .num.orange{color:#ea580c}
+  .stat-grid .num.blue{color:#2563eb}
+  .stat-grid .num.gray{color:#6b7280}
+
+  .status-dist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .dist-tag{display:flex;align-items:center;gap:5px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:3px 9px;font-size:12px;color:#555}
+  .dist-tag .count{font-weight:700;color:#222}
+
+  .bar-container{display:flex;height:6px;border-radius:3px;overflow:hidden;background:#f0f0f0;margin-top:10px}
+  .bar-segment{transition:width .5s ease}
+
+  .last-update{text-align:center;color:#999;font-size:12px;margin-top:8px}
+  .loading{text-align:center;color:#999;padding:16px;font-size:13px}
+  .error-inline{color:#dc2626;font-size:13px;padding:8px 0}
+  .url-text{font-size:11px;color:#999;word-break:break-all;font-family:ui-monospace,SFMono-Regular,monospace;margin-top:1px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
   @media(max-width:640px){
-    .header{flex-direction:column;gap:10px;padding:12px 16px}
+    .topbar{flex-wrap:wrap;height:auto;padding:12px 16px;gap:8px}
+    .container{padding:12px 12px 40px}
     .grid{grid-template-columns:1fr}
+    .summary-row{grid-template-columns:repeat(2,1fr)}
     .stat-grid{grid-template-columns:repeat(2,1fr)}
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>📊 系统监控面板</h1>
-  <div class="header-right">
+<div class="topbar">
+  <div class="topbar-left">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <h1>系统监控</h1>
+  </div>
+  <div class="topbar-right">
     <label>
       <input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()">
       自动刷新
     </label>
-    <span id="countdown" style="color:#aaa;min-width:60px">--</span>
+    <span class="countdown" id="countdown">--</span>
     <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">刷新</button>
   </div>
 </div>
@@ -69,31 +111,63 @@
 <div class="container">
   <div class="error-msg" id="errorMsg"></div>
 
+  <!-- 快捷链接 -->
+  <div class="quick-links">
+    <a class="quick-link" href="/" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      主页
+    </a>
+    <a class="quick-link" href="/#knowledge" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      知识库
+    </a>
+    <a class="quick-link" href="/#document" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      文档处理
+    </a>
+    <a class="quick-link" href="/#data" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      数据中心
+    </a>
+    <a class="quick-link" href="/#ai" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      AI 对话
+    </a>
+  </div>
+
+  <!-- 总览统计 -->
+  <div class="summary-row" id="summaryRow">
+    <div class="summary-card"><div class="label">系统状态</div><div class="value gray" id="sumStatus">--</div><div class="sub" id="sumStatusSub"></div></div>
+    <div class="summary-card"><div class="label">知识库文件</div><div class="value blue" id="sumKbFiles">--</div><div class="sub" id="sumKbSub"></div></div>
+    <div class="summary-card"><div class="label">文档处理</div><div class="value gray" id="sumDocTotal">--</div><div class="sub" id="sumDocSub"></div></div>
+    <div class="summary-card"><div class="label">AI 引擎</div><div class="value gray" id="sumAi">--</div><div class="sub" id="sumAiSub"></div></div>
+  </div>
+
   <div class="grid">
     <!-- 服务状态 -->
     <div class="card">
-      <div class="card-title"><span class="icon">🔌</span>服务状态</div>
-      <div id="healthContent"><div class="loading">加载中...</div></div>
+      <div class="card-header">服务状态</div>
+      <div class="card-body" id="healthContent"><div class="loading">加载中...</div></div>
     </div>
 
     <!-- AI 引擎 -->
     <div class="card">
-      <div class="card-title"><span class="icon">🤖</span>AI 引擎</div>
-      <div id="aiContent"><div class="loading">加载中...</div></div>
+      <div class="card-header">AI 引擎</div>
+      <div class="card-body" id="aiContent"><div class="loading">加载中...</div></div>
     </div>
   </div>
 
   <div class="grid">
     <!-- 知识库统计 -->
     <div class="card">
-      <div class="card-title"><span class="icon">📚</span>知识库统计</div>
-      <div id="kbContent"><div class="loading">加载中...</div></div>
+      <div class="card-header">知识库统计</div>
+      <div class="card-body" id="kbContent"><div class="loading">加载中...</div></div>
     </div>
 
     <!-- 文档处理统计 -->
     <div class="card">
-      <div class="card-title"><span class="icon">📄</span>文档处理统计</div>
-      <div id="docContent"><div class="loading">加载中...</div></div>
+      <div class="card-header">文档处理统计</div>
+      <div class="card-body" id="docContent"><div class="loading">加载中...</div></div>
     </div>
   </div>
 
@@ -108,11 +182,8 @@ var countdownSec = 0;
 
 function toggleAutoRefresh(){
   var cb = document.getElementById("autoRefresh");
-  if(cb.checked){
-    startAutoRefresh();
-  }else{
-    stopAutoRefresh();
-  }
+  if(cb.checked){ startAutoRefresh(); }
+  else { stopAutoRefresh(); }
 }
 
 function startAutoRefresh(){
@@ -151,12 +222,18 @@ function htmlDot(ok){
   return '<span class="dot ' + (ok ? "ok" : "fail") + '"></span>';
 }
 
+function pad(n){ return n < 10 ? "0" + n : "" + n; }
+
+function escapeHtml(str){
+  if(typeof str!=="string") return "";
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
 function refreshAll(){
   var btn = document.getElementById("refreshBtn");
   btn.disabled = true;
   btn.textContent = "刷新中...";
 
-  // 并发请求
   Promise.all([
     fetchJSON(API_BASE + "/health").catch(function(e){ return null; }),
     fetchJSON(API_BASE + "/ai/status").catch(function(e){ return null; }),
@@ -164,13 +241,14 @@ function refreshAll(){
     fetchJSON(API_BASE + "/documents/stats").catch(function(e){ return null; })
   ]).then(function(results){
     var health = results[0], ai = results[1], kb = results[2], doc = results[3];
+    renderSummary(health, ai, kb, doc);
     renderHealth(health);
     renderAI(ai);
     renderKB(kb);
     renderDoc(doc);
 
     var now = new Date();
-    document.getElementById("lastUpdate").textContent = "上次刷新: " +
+    document.getElementById("lastUpdate").textContent = "上次更新: " +
       now.getFullYear() + "-" + pad(now.getMonth()+1) + "-" + pad(now.getDate()) + " " +
       pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
 
@@ -183,58 +261,122 @@ function refreshAll(){
   });
 }
 
-function pad(n){ return n < 10 ? "0" + n : "" + n; }
+// 总览
+function renderSummary(health, ai, kb, doc){
+  // 系统状态
+  var sumStatus = document.getElementById("sumStatus");
+  var sumStatusSub = document.getElementById("sumStatusSub");
+  if(health && health.status === "ok"){
+    sumStatus.textContent = "正常";
+    sumStatus.className = "value green";
+    sumStatusSub.textContent = "所有服务运行中";
+  } else if(health){
+    sumStatus.textContent = "降级";
+    sumStatus.className = "value orange";
+    sumStatusSub.textContent = "部分服务异常";
+  } else {
+    sumStatus.textContent = "无法连接";
+    sumStatus.className = "value red";
+    sumStatusSub.textContent = "后端 API 不可达";
+  }
+
+  // 知识库
+  var sumKbFiles = document.getElementById("sumKbFiles");
+  var sumKbSub = document.getElementById("sumKbSub");
+  if(kb){
+    sumKbFiles.textContent = kb.file_count || 0;
+    sumKbFiles.className = "value blue";
+    sumKbSub.textContent = (kb.chunk_count || 0) + " 分块";
+  } else {
+    sumKbFiles.textContent = "--";
+    sumKbFiles.className = "value gray";
+    sumKbSub.textContent = "";
+  }
+
+  // 文档处理
+  var sumDocTotal = document.getElementById("sumDocTotal");
+  var sumDocSub = document.getElementById("sumDocSub");
+  if(doc){
+    var total = (doc.queued||0) + (doc.processing||0) + (doc.completed||0) + (doc.failed||0);
+    sumDocTotal.textContent = total;
+    sumDocTotal.className = "value gray";
+    var parts = [];
+    if(doc.processing > 0) parts.push("处理中 " + doc.processing);
+    if(doc.queued > 0) parts.push("排队 " + doc.queued);
+    if(doc.failed > 0) parts.push("失败 " + doc.failed);
+    sumDocSub.textContent = parts.length ? parts.join(" | ") : "全部完成";
+  } else {
+    sumDocTotal.textContent = "--";
+    sumDocTotal.className = "value gray";
+    sumDocSub.textContent = "";
+  }
+
+  // AI 引擎
+  var sumAi = document.getElementById("sumAi");
+  var sumAiSub = document.getElementById("sumAiSub");
+  if(ai){
+    var allOk = ai.qwen_reachable && ai.qwen_chat_reachable;
+    var busy = ai.qwen_busy || ai.qwen_chat_busy;
+    sumAi.textContent = allOk ? (busy ? "繁忙" : "空闲") : "异常";
+    sumAi.className = allOk ? (busy ? "value orange" : "value green") : "value red";
+    sumAiSub.textContent = ai.message || "";
+  } else {
+    sumAi.textContent = "--";
+    sumAi.className = "value gray";
+    sumAiSub.textContent = "";
+  }
+}
 
 // 服务状态
 function renderHealth(d){
   var el = document.getElementById("healthContent");
-  if(!d){ el.innerHTML = '<div class="error-msg show">获取失败</div>'; return; }
+  if(!d){ el.innerHTML = '<div class="error-inline">获取失败</div>'; return; }
   var statusText = d.status === "ok" ? "正常" : "降级";
   var statusDot = d.status === "ok" ? "ok" : "degraded";
   el.innerHTML =
     '<div class="status-row"><span class="status-label">系统状态</span><span class="status-value"><span class="dot ' + statusDot + '"></span>' + statusText + '</span></div>' +
-    '<div class="status-row"><span class="status-label">SQLite</span><span class="status-value">' + htmlDot(d.sqlite) + (d.sqlite ? "正常" : "异常") + '</span></div>' +
+    '<div class="status-row"><span class="status-label">SQLite 数据库</span><span class="status-value">' + htmlDot(d.sqlite) + (d.sqlite ? "正常" : "异常") + '</span></div>' +
     '<div class="status-row"><span class="status-label">Qwen 文档引擎</span><span class="status-value">' + htmlDot(d.qwen) + (d.qwen ? "正常" : "异常") + '</span></div>' +
     '<div class="status-row"><span class="status-label">Qwen 对话引擎</span><span class="status-value">' + htmlDot(d.qwen_chat) + (d.qwen_chat ? "正常" : "异常") + '</span></div>' +
-    '<div class="status-row"><span class="status-label">ChromaDB</span><span class="status-value">' + htmlDot(d.chroma) + (d.chroma ? "正常" : "异常") + '</span></div>';
+    '<div class="status-row"><span class="status-label">ChromaDB 向量库</span><span class="status-value">' + htmlDot(d.chroma) + (d.chroma ? "正常" : "异常") + '</span></div>';
 }
 
 // AI 引擎
 function renderAI(d){
   var el = document.getElementById("aiContent");
-  if(!d){ el.innerHTML = '<div class="error-msg show">获取失败</div>'; return; }
+  if(!d){ el.innerHTML = '<div class="error-inline">获取失败</div>'; return; }
   var docBusy = d.qwen_busy === true ? "繁忙" : "空闲";
   var chatBusy = d.qwen_chat_busy === true ? "繁忙" : "空闲";
   el.innerHTML =
     '<div class="status-row"><span class="status-label">文档引擎</span><span class="status-value">' + htmlDot(d.qwen_reachable) + (d.qwen_reachable ? "可连接" : "不可达") + '</span></div>' +
     '<div class="status-row"><span class="status-label">文档引擎状态</span><span class="status-value">' + docBusy + '</span></div>' +
-    '<div class="status-row"><span class="status-label">文档引擎 URL</span><span class="url-text">' + escapeHtml(d.qwen_url) + '</span></div>' +
+    '<div class="status-row"><span class="status-label">文档引擎地址</span><span class="url-text" title="' + escapeHtml(d.qwen_url) + '">' + escapeHtml(d.qwen_url) + '</span></div>' +
     '<div class="status-row"><span class="status-label">对话引擎</span><span class="status-value">' + htmlDot(d.qwen_chat_reachable) + (d.qwen_chat_reachable ? "可连接" : "不可达") + '</span></div>' +
     '<div class="status-row"><span class="status-label">对话引擎状态</span><span class="status-value">' + chatBusy + '</span></div>' +
-    '<div class="status-row"><span class="status-label">对话引擎 URL</span><span class="url-text">' + escapeHtml(d.qwen_chat_url) + '</span></div>';
+    '<div class="status-row"><span class="status-label">对话引擎地址</span><span class="url-text" title="' + escapeHtml(d.qwen_chat_url) + '">' + escapeHtml(d.qwen_chat_url) + '</span></div>';
 }
 
 // 知识库统计
 function renderKB(d){
   var el = document.getElementById("kbContent");
-  if(!d){ el.innerHTML = '<div class="error-msg show">获取失败</div>'; return; }
+  if(!d){ el.innerHTML = '<div class="error-inline">获取失败</div>'; return; }
   var sizeStr = d.total_size > 1024*1024 ? (d.total_size/1024/1024).toFixed(1) + " MB" :
                 d.total_size > 1024 ? (d.total_size/1024).toFixed(1) + " KB" :
                 d.total_size + " B";
   var statusHtml = "";
   var totalCount = 0;
-  var statusColors = {ready:"#2ecc71", building:"#f39c12", failed:"#e74c3c", pending:"#95a5a6"};
+  var statusColors = {ready:"#16a34a", building:"#ea580c", failed:"#dc2626", pending:"#9ca3af"};
   for(var k in d.status_counts){
     totalCount += d.status_counts[k];
-    var color = statusColors[k] || "#95a5a6";
-    statusHtml += '<span class="dist-tag"><span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block"></span>' + k + ' <span class="count">' + d.status_counts[k] + '</span></span>';
+    var color = statusColors[k] || "#9ca3af";
+    statusHtml += '<span class="dist-tag"><span style="width:7px;height:7px;border-radius:50%;background:' + color + ';display:inline-block"></span>' + k + ' <span class="count">' + d.status_counts[k] + '</span></span>';
   }
   el.innerHTML =
     '<div class="stat-grid">' +
-      '<div><div class="stat-number blue">' + d.file_count + '</div><div class="stat-label">文件数</div></div>' +
-      '<div><div class="stat-number green">' + d.chunk_count + '</div><div class="stat-label">分块数</div></div>' +
-      '<div><div class="stat-number orange">' + sizeStr + '</div><div class="stat-label">总大小</div></div>' +
-      '<div><div class="stat-number">' + totalCount + '</div><div class="stat-label">状态合计</div></div>' +
+      '<div><div class="num blue">' + d.file_count + '</div><div class="lbl">文件数</div></div>' +
+      '<div><div class="num green">' + d.chunk_count + '</div><div class="lbl">分块数</div></div>' +
+      '<div><div class="num orange">' + sizeStr + '</div><div class="lbl">总大小</div></div>' +
+      '<div><div class="num gray">' + totalCount + '</div><div class="lbl">状态合计</div></div>' +
     '</div>' +
     '<div class="status-dist">' + statusHtml + '</div>';
 }
@@ -242,30 +384,25 @@ function renderKB(d){
 // 文档处理统计
 function renderDoc(d){
   var el = document.getElementById("docContent");
-  if(!d){ el.innerHTML = '<div class="error-msg show">获取失败</div>'; return; }
-  var total = d.queued + d.processing + d.completed + d.failed;
+  if(!d){ el.innerHTML = '<div class="error-inline">获取失败</div>'; return; }
+  var total = (d.queued||0) + (d.processing||0) + (d.completed||0) + (d.failed||0);
   var barHtml = "";
   if(total > 0){
     barHtml = '<div class="bar-container">' +
-      (d.queued > 0 ? '<div class="bar-segment" style="width:' + (d.queued/total*100) + '%;background:#95a5a6" title="排队中 ' + d.queued + '"></div>' : '') +
-      (d.processing > 0 ? '<div class="bar-segment" style="width:' + (d.processing/total*100) + '%;background:#f39c12" title="处理中 ' + d.processing + '"></div>' : '') +
-      (d.completed > 0 ? '<div class="bar-segment" style="width:' + (d.completed/total*100) + '%;background:#2ecc71" title="已完成 ' + d.completed + '"></div>' : '') +
-      (d.failed > 0 ? '<div class="bar-segment" style="width:' + (d.failed/total*100) + '%;background:#e74c3c" title="失败 ' + d.failed + '"></div>' : '') +
+      (d.queued > 0 ? '<div class="bar-segment" style="width:' + (d.queued/total*100) + '%;background:#9ca3af" title="排队中 ' + d.queued + '"></div>' : '') +
+      (d.processing > 0 ? '<div class="bar-segment" style="width:' + (d.processing/total*100) + '%;background:#ea580c" title="处理中 ' + d.processing + '"></div>' : '') +
+      (d.completed > 0 ? '<div class="bar-segment" style="width:' + (d.completed/total*100) + '%;background:#16a34a" title="已完成 ' + d.completed + '"></div>' : '') +
+      (d.failed > 0 ? '<div class="bar-segment" style="width:' + (d.failed/total*100) + '%;background:#dc2626" title="失败 ' + d.failed + '"></div>' : '') +
     '</div>';
   }
   el.innerHTML =
     '<div class="stat-grid">' +
-      '<div><div class="stat-number" style="color:#95a5a6">' + d.queued + '</div><div class="stat-label">排队中</div></div>' +
-      '<div><div class="stat-number orange">' + d.processing + '</div><div class="stat-label">处理中</div></div>' +
-      '<div><div class="stat-number green">' + d.completed + '</div><div class="stat-label">已完成</div></div>' +
-      '<div><div class="stat-number red">' + d.failed + '</div><div class="stat-label">失败</div></div>' +
+      '<div><div class="num gray">' + (d.queued||0) + '</div><div class="lbl">排队中</div></div>' +
+      '<div><div class="num orange">' + (d.processing||0) + '</div><div class="lbl">处理中</div></div>' +
+      '<div><div class="num green">' + (d.completed||0) + '</div><div class="lbl">已完成</div></div>' +
+      '<div><div class="num red">' + (d.failed||0) + '</div><div class="lbl">失败</div></div>' +
     '</div>' +
     barHtml;
-}
-
-function escapeHtml(str){
-  if(typeof str!=="string") return "";
-  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 // 启动
