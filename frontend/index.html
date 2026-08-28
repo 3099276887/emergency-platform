@@ -1878,7 +1878,7 @@ async function startAiStream(continuing){
           temperature:0.7,
           max_tokens:2048,
           enable_rag: enableRAG,
-          region: enableRAG ? (getRegionValue() || "") : ""
+          region: enableRAG ? ((document.getElementById("ragProvince")?.value||"") + (document.getElementById("ragCity")?.value ? "-"+document.getElementById("ragCity")?.value : "")) : ""
         })
       }
     );
@@ -3103,15 +3103,6 @@ loadDocuments();
       citySel.appendChild(opt);
     }
     citySel.disabled = false;
-  }
-
-  // 获取最终region值
-  function getRegionValue(){
-    const province = document.getElementById("ragProvince")?.value;
-    const city = document.getElementById("ragCity")?.value;
-    if(!province) return "";
-    if(!city || city === "") return province;
-    return province + "-" + city;
   }
 
   const ragToggle=document.getElementById("ragToggle");
