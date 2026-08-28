@@ -105,6 +105,18 @@
   .proc-table td{padding:4px 8px;color:#444;border-bottom:1px solid #f5f5f5;font-variant-numeric:tabular-nums}
   .proc-table tr:last-child td{border-bottom:none}
 
+  .compact-card .card-header{font-size:13px;padding:8px 12px}
+  .compact-card .card-body{padding:8px 12px 10px}
+  .compact-card .status-row{font-size:12px;padding:4px 0}
+  .compact-card .url-text{max-width:160px}
+  .compact-card .stat-grid .num{font-size:18px}
+
+  .monitor-card{border-color:#d1d5db}
+  .monitor-card .card-header{font-size:15px;padding:14px 18px;background:#fafbfc}
+  .monitor-card .card-body{padding:14px 18px 18px}
+  .monitor-card .gauge{padding:8px 0}
+  .monitor-card .gauge-track{height:10px;border-radius:5px}
+
   @media(max-width:640px){
     .topbar{flex-wrap:wrap;height:auto;padding:12px 16px;gap:8px}
     .container{padding:12px 12px 40px}
@@ -166,39 +178,39 @@
     <div class="summary-card"><div class="label">AI 引擎</div><div class="value gray" id="sumAi">--</div><div class="sub" id="sumAiSub"></div></div>
   </div>
 
+  <!-- 资源占用（主体 - 置顶） -->
   <div class="grid">
+    <div class="card monitor-card">
+      <div class="card-header">资源占用</div>
+      <div class="card-body" id="monitorContent"><div class="error-inline">获取失败</div></div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr">
     <!-- 服务状态 -->
-    <div class="card">
+    <div class="card compact-card">
       <div class="card-header">服务状态</div>
       <div class="card-body" id="healthContent"><div class="error-inline">获取失败</div></div>
     </div>
 
     <!-- AI 引擎 -->
-    <div class="card">
+    <div class="card compact-card">
       <div class="card-header">AI 引擎</div>
       <div class="card-body" id="aiContent"><div class="error-inline">获取失败</div></div>
     </div>
   </div>
 
-  <div class="grid">
+  <div class="grid" style="grid-template-columns:1fr 1fr">
     <!-- 知识库统计 -->
-    <div class="card">
+    <div class="card compact-card">
       <div class="card-header">知识库统计</div>
       <div class="card-body" id="kbContent"><div class="error-inline">获取失败</div></div>
     </div>
 
     <!-- 文档处理统计 -->
-    <div class="card">
+    <div class="card compact-card">
       <div class="card-header">文档处理统计</div>
       <div class="card-body" id="docContent"><div class="error-inline">获取失败</div></div>
-    </div>
-  </div>
-
-  <!-- 资源占用 -->
-  <div class="grid">
-    <div class="card">
-      <div class="card-header">资源占用</div>
-      <div class="card-body" id="monitorContent"><div class="error-inline">获取失败</div></div>
     </div>
   </div>
 
@@ -453,6 +465,8 @@ function renderMonitor(d){
   var tpuTemp = d.tpu.temperature_c;
   var tpuColor = tpuTemp > 70 ? "hot" : tpuTemp > 50 ? "warm" : "cool";
   var tpuUtilColor = d.tpu.tpu_util_percent > 80 ? "hot" : d.tpu.tpu_util_percent > 50 ? "warm" : "cool";
+  var npuMemPercent = Math.round(d.tpu.npu_memory_used_mb / d.tpu.npu_memory_total_mb * 100);
+  var npuMemColor = npuMemPercent > 90 ? "hot" : npuMemPercent > 75 ? "warm" : "cool";
 
   // 进程表
   var procRows = "";
@@ -476,11 +490,22 @@ function renderMonitor(d){
     '<div style="font-size:12px;color:#888;text-align:center;margin:2px 0 8px 0">' +
       d.memory.used_mb + ' MB / ' + d.memory.total_mb + ' MB（可用 ' + d.memory.available_mb + ' MB）' +
     '</div>' +
+    '<div class="gauge">' +
+      '<span class="gauge-label">TPU</span>' +
+      '<div class="gauge-track"><div class="gauge-fill" style="width:' + d.tpu.tpu_util_percent + '%;background:' + (tpuUtilColor==="hot"?"#dc2626":tpuUtilColor==="warm"?"#ea580c":"#7c3aed") + '"></div></div>' +
+      '<span class="gauge-value ' + tpuUtilColor + '">' + d.tpu.tpu_util_percent + '%</span>' +
+    '</div>' +
+    '<div class="gauge">' +
+      '<span class="gauge-label">显存</span>' +
+      '<div class="gauge-track"><div class="gauge-fill" style="width:' + npuMemPercent + '%;background:' + (npuMemColor==="hot"?"#dc2626":npuMemColor==="warm"?"#ea580c":"#7c3aed") + '"></div></div>' +
+      '<span class="gauge-value ' + npuMemColor + '">' + npuMemPercent + '%</span>' +
+    '</div>' +
+    '<div style="font-size:12px;color:#888;text-align:center;margin:2px 0 8px 0">' +
+      d.tpu.npu_memory_used_mb + ' MB / ' + d.tpu.npu_memory_total_mb + ' MB' +
+    '</div>' +
     '<div class="monitor-2col">' +
       '<div class="monitor-item"><div class="lbl">TPU 温度</div><div class="val ' + tpuColor + '">' + tpuTemp + '°C</div></div>' +
-      '<div class="monitor-item"><div class="lbl">TPU 利用率</div><div class="val ' + tpuUtilColor + '">' + d.tpu.tpu_util_percent + '%</div></div>' +
       '<div class="monitor-item"><div class="lbl">TPU 时钟</div><div class="val">' + d.tpu.clock_mhz_cur + ' MHz</div><div class="sub">' + d.tpu.clock_mhz_min + ' ~ ' + d.tpu.clock_mhz_max + ' MHz</div></div>' +
-      '<div class="monitor-item"><div class="lbl">NPU 显存</div><div class="val">' + d.tpu.npu_memory_used_mb + ' MB</div><div class="sub">/ ' + d.tpu.npu_memory_total_mb + ' MB</div></div>' +
     '</div>' +
     '<table class="proc-table">' +
       '<tr><th>进程</th><th>PID</th><th>内存</th></tr>' +
