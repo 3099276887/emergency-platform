@@ -2483,19 +2483,14 @@ async function loadDataCenterTasks(silent=false){
         failed:"失败"
       }[item.status] || item.status || "未知";
 
-      const detailUrl=
-        API_BASE+"/documents/"+encodeURIComponent(item.id);
-
-      const downloadUrl=
-        API_BASE+"/documents/"+
-        encodeURIComponent(item.id)+"/download";
+      const outputFilename=item.output_filename || "未命名任务";
+      const taskId=item.id;
+      const detailUrl = "data_detail.html?id=" + encodeURIComponent(taskId) + "&title=" + encodeURIComponent(outputFilename);
 
       return `
         <div class="data-task" data-dc-id="${escapeHtml(item.id)}">
           <div class="data-task-main">
-            <strong>${escapeHtml(
-              item.output_filename || "未命名任务"
-            )}</strong>
+            <strong>${escapeHtml(outputFilename)}</strong>
             <span>任务类型：${escapeHtml(
               item.task_type || "未指定"
             )}</span>
@@ -2513,17 +2508,11 @@ async function loadDataCenterTasks(silent=false){
             <b class="task-status status-${escapeHtml(item.status || "")}">
               ${escapeHtml(stateName)}
             </b>
-            <button
-              class="btn-secondary"
-              data-detail-url="${escapeHtml(detailUrl)}"
-            >
-              查看
-            </button>
+            <a href="${detailUrl}" target="_blank" class="btn-secondary">查看</a>
             <button
               class="btn-danger"
               data-delete-id="${escapeHtml(item.id)}"
-            > 
-              删除
+            > 删除
             </button>
             ${
               item.status==="completed"
@@ -2653,34 +2642,7 @@ function patchDataCenterRows(items, existingRows, statusEl){
 }
 
 function bindDataCenterRowEvents(list, items, status){
-  list.querySelectorAll("[data-detail-url]").forEach(button=>{
-    button.onclick=async()=>{
-      const taskElement=button.closest(".data-task");
-      const next=taskElement && taskElement.nextElementSibling;
-
-      if(next && next.classList.contains("data-task-detail")){
-        next.remove();
-        return;
-      }
-
-      try{
-        const response=await fetch(button.dataset.detailUrl,{
-          headers:{"Accept":"application/json"}
-        });
-
-        const detail=await response.json();
-
-        if(!response.ok){
-          throw new Error(getErrorMessage(detail));
-        }
-
-        showDataTaskDetail(detail, taskElement);
-      }catch(error){
-        status.textContent="读取任务失败："+error.message;
-        status.className="note error";
-      }
-    };
-  });
+  // "查看" is now an <a> link that opens new page, no need to bind click
 
   list.querySelectorAll("[data-delete-id]").forEach(button=>{
     button.onclick=async()=>{
