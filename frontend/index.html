@@ -2486,6 +2486,7 @@ async function loadDataCenterTasks(silent=false){
       const outputFilename=item.output_filename || "未命名任务";
       const taskId=item.id;
       const detailUrl = "data_detail.html?id=" + encodeURIComponent(taskId) + "&title=" + encodeURIComponent(outputFilename);
+      const downloadUrl = API_BASE+"/documents/"+encodeURIComponent(taskId)+"/download";
 
       return `
         <div class="data-task" data-dc-id="${escapeHtml(item.id)}">
