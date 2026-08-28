@@ -302,6 +302,12 @@ body.side-collapsed aside .law-subnav{display:none}
   color:#6b7280;font-size:13px;cursor:pointer;user-select:none;
 }
 .rag-label input[type="checkbox"]{accent-color:#6b7280;margin:0;cursor:pointer}
+.rag-region-select{
+  font-size:12px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;
+  color:#555;background:#fff;cursor:pointer;outline:none;margin-left:4px;
+  max-width:100px;display:none;
+}
+.rag-region-select:focus{border-color:#9ca3af}
 .chat-input-actions{
   display:flex;align-items:center;gap:4px;
 }
@@ -1606,6 +1612,13 @@ function aiPage(){
           <div class="chat-input-footer">
             <label class="rag-label">
               <input type="checkbox" id="ragToggle" />RAG
+              <select id="ragRegion" class="rag-region-select">
+                <option value="">无（全量检索）</option>
+                <option value="国家法律">国家法律</option>
+                <option value="行政法规">行政法规</option>
+                <option value="地方法规">地方法规</option>
+                <option value="暂定">暂定</option>
+              </select>
             </label>
             <div class="chat-input-actions">
               <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
@@ -1863,7 +1876,8 @@ async function startAiStream(continuing){
           stream:true,
           temperature:0.7,
           max_tokens:2048,
-          enable_rag: enableRAG
+          enable_rag: enableRAG,
+          region: enableRAG ? (document.getElementById("ragRegion")?.value || "") : ""
         })
       }
     );
@@ -3024,12 +3038,20 @@ loadDocuments();
   }
 
   const ragToggle=document.getElementById("ragToggle");
+  const ragRegion=document.getElementById("ragRegion");
+  function toggleRegionSelect(){
+    if(ragRegion){
+      ragRegion.style.display=ragToggle&&ragToggle.checked?"inline-block":"none";
+    }
+  }
   if(ragToggle){
     ragToggle.checked=enableRAG;
     ragToggle.onchange=()=>{
       enableRAG=ragToggle.checked;
+      toggleRegionSelect();
     };
   }
+  toggleRegionSelect();
 
   const clearButton=document.getElementById("clearChat");
   if(clearButton){
