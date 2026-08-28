@@ -82,6 +82,30 @@
   .error-inline{color:#dc2626;font-size:13px;padding:8px 0}
   .url-text{font-size:11px;color:#999;word-break:break-all;font-family:ui-monospace,SFMono-Regular,monospace;margin-top:1px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+  /* 资源监控 */
+  .gauge{display:flex;align-items:center;gap:10px;padding:6px 0}
+  .gauge-label{font-size:12px;color:#666;min-width:40px;flex-shrink:0}
+  .gauge-track{flex:1;height:8px;border-radius:4px;background:#f0f0f0;overflow:hidden;min-width:60px}
+  .gauge-fill{height:100%;border-radius:4px;transition:width .6s ease}
+  .gauge-value{font-size:13px;font-weight:600;min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+  .gauge-value.warm{color:#ea580c}
+  .gauge-value.hot{color:#dc2626}
+  .gauge-value.cool{color:#16a34a}
+
+  .monitor-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+  .monitor-item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px}
+  .monitor-item .lbl{font-size:11px;color:#888;margin-bottom:2px}
+  .monitor-item .val{font-size:16px;font-weight:700;line-height:1.3}
+  .monitor-item .val.warm{color:#ea580c}
+  .monitor-item .val.hot{color:#dc2626}
+  .monitor-item .val.cool{color:#16a34a}
+  .monitor-item .sub{font-size:11px;color:#999;margin-top:1px}
+
+  .proc-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+  .proc-table th{text-align:left;padding:4px 8px;color:#888;font-weight:500;border-bottom:1px solid #eee}
+  .proc-table td{padding:4px 8px;color:#444;border-bottom:1px solid #f5f5f5;font-variant-numeric:tabular-nums}
+  .proc-table tr:last-child td{border-bottom:none}
+
   @media(max-width:640px){
     .topbar{flex-wrap:wrap;height:auto;padding:12px 16px;gap:8px}
     .container{padding:12px 12px 40px}
@@ -171,6 +195,14 @@
     </div>
   </div>
 
+  <!-- 资源占用 -->
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">资源占用</div>
+      <div class="card-body" id="monitorContent"><div class="loading">加载中...</div></div>
+    </div>
+  </div>
+
   <div class="last-update" id="lastUpdate">等待刷新...</div>
 </div>
 
@@ -238,14 +270,16 @@ function refreshAll(){
     fetchJSON(API_BASE + "/health").catch(function(e){ return null; }),
     fetchJSON(API_BASE + "/ai/status").catch(function(e){ return null; }),
     fetchJSON(API_BASE + "/kb/stats").catch(function(e){ return null; }),
-    fetchJSON(API_BASE + "/documents/stats").catch(function(e){ return null; })
+    fetchJSON(API_BASE + "/documents/stats").catch(function(e){ return null; }),
+    fetchJSON(API_BASE + "/monitor").catch(function(e){ return null; })
   ]).then(function(results){
-    var health = results[0], ai = results[1], kb = results[2], doc = results[3];
+    var health = results[0], ai = results[1], kb = results[2], doc = results[3], monitor = results[4];
     renderSummary(health, ai, kb, doc);
     renderHealth(health);
     renderAI(ai);
     renderKB(kb);
     renderDoc(doc);
+    renderMonitor(monitor);
 
     var now = new Date();
     document.getElementById("lastUpdate").textContent = "上次更新: " +
@@ -403,6 +437,52 @@ function renderDoc(d){
       '<div><div class="num red">' + (d.failed||0) + '</div><div class="lbl">失败</div></div>' +
     '</div>' +
     barHtml;
+}
+
+// 资源占用
+function renderMonitor(d){
+  var el = document.getElementById("monitorContent");
+  if(!d){ el.innerHTML = '<div class="error-inline">获取失败</div>'; return; }
+
+  // CPU 色彩
+  var cpuColor = d.cpu.usage_percent > 90 ? "hot" : d.cpu.usage_percent > 70 ? "warm" : "cool";
+  var memColor = d.memory.percent > 90 ? "hot" : d.memory.percent > 70 ? "warm" : "cool";
+  var tpuTemp = d.tpu.temperature_c;
+  var tpuColor = tpuTemp > 70 ? "hot" : tpuTemp > 50 ? "warm" : "cool";
+  var tpuUtilColor = d.tpu.tpu_util_percent > 80 ? "hot" : d.tpu.tpu_util_percent > 50 ? "warm" : "cool";
+
+  // 进程表
+  var procRows = "";
+  for(var i=0; i<d.processes.length; i++){
+    var p = d.processes[i];
+    var rss = p.rss_mb > 1024 ? (p.rss_mb/1024).toFixed(1) + " GB" : p.rss_mb + " MB";
+    procRows += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + p.pid + '</td><td>' + rss + '</td></tr>';
+  }
+
+  el.innerHTML =
+    '<div class="gauge">' +
+      '<span class="gauge-label">CPU</span>' +
+      '<div class="gauge-track"><div class="gauge-fill" style="width:' + d.cpu.usage_percent + '%;background:' + (cpuColor==="hot"?"#dc2626":cpuColor==="warm"?"#ea580c":"#2563eb") + '"></div></div>' +
+      '<span class="gauge-value ' + cpuColor + '">' + d.cpu.usage_percent + '%</span>' +
+    '</div>' +
+    '<div class="gauge">' +
+      '<span class="gauge-label">内存</span>' +
+      '<div class="gauge-track"><div class="gauge-fill" style="width:' + d.memory.percent + '%;background:' + (memColor==="hot"?"#dc2626":memColor==="warm"?"#ea580c":"#16a34a") + '"></div></div>' +
+      '<span class="gauge-value ' + memColor + '">' + d.memory.percent + '%</span>' +
+    '</div>' +
+    '<div style="font-size:12px;color:#888;text-align:center;margin:2px 0 8px 0">' +
+      d.memory.used_mb + ' MB / ' + d.memory.total_mb + ' MB（可用 ' + d.memory.available_mb + ' MB）' +
+    '</div>' +
+    '<div class="monitor-2col">' +
+      '<div class="monitor-item"><div class="lbl">TPU 温度</div><div class="val ' + tpuColor + '">' + tpuTemp + '°C</div></div>' +
+      '<div class="monitor-item"><div class="lbl">TPU 利用率</div><div class="val ' + tpuUtilColor + '">' + d.tpu.tpu_util_percent + '%</div></div>' +
+      '<div class="monitor-item"><div class="lbl">TPU 时钟</div><div class="val">' + d.tpu.clock_mhz_cur + ' MHz</div><div class="sub">' + d.tpu.clock_mhz_min + ' ~ ' + d.tpu.clock_mhz_max + ' MHz</div></div>' +
+      '<div class="monitor-item"><div class="lbl">NPU 显存</div><div class="val">' + d.tpu.npu_memory_used_mb + ' MB</div><div class="sub">/ ' + d.tpu.npu_memory_total_mb + ' MB</div></div>' +
+    '</div>' +
+    '<table class="proc-table">' +
+      '<tr><th>进程</th><th>PID</th><th>内存</th></tr>' +
+      procRows +
+    '</table>';
 }
 
 // 启动
