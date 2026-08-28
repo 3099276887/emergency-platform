@@ -122,16 +122,16 @@
       html+='</div>';
 
       // 原文内容（如果有）
-      if(detail.original_content){
+      if(detail.original_text){
         html+='<div class="detail-section"><h3>原文内容</h3>';
-        html+='<div class="detail-row"><span class="value"><pre>'+escapeHtml(detail.original_content)+'</pre></span></div>';
+        html+='<div class="detail-row"><span class="value"><pre>'+escapeHtml(detail.original_text)+'</pre></span></div>';
         html+='</div>';
       }
 
       // 生成结果（如果有）
-      if(detail.generated_content){
+      if(detail.report_content){
         html+='<div class="detail-section"><h3>生成结果</h3>';
-        html+='<div class="detail-row"><span class="value"><pre>'+escapeHtml(detail.generated_content)+'</pre></span></div>';
+        html+='<div class="detail-row"><span class="value"><pre>'+escapeHtml(detail.report_content)+'</pre></span></div>';
         html+='</div>';
       }
 
