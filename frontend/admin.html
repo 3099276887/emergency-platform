@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>系统监控 - 应急管理平台</title>
@@ -119,50 +118,50 @@
 
 <div class="topbar">
   <div class="topbar-left">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
     <h1>系统监控</h1>
   </div>
   <div class="topbar-right">
     <label>
-      <input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()">
+      <input type="checkbox" id="autoRefresh" checked="" onchange="toggleAutoRefresh()">
       自动刷新
     </label>
-    <span class="countdown" id="countdown">--</span>
+    <span class="countdown" id="countdown">19s</span>
     <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">刷新</button>
   </div>
 </div>
 
 <div class="container">
-  <div class="error-msg" id="errorMsg"></div>
+  <div class="error-msg" id="errorMsg">健康检查接口不可用</div>
 
   <!-- 快捷链接 -->
   <div class="quick-links">
     <a class="quick-link" href="/" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       主页
     </a>
     <a class="quick-link" href="/#knowledge" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
       知识库
     </a>
     <a class="quick-link" href="/#document" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
       文档处理
     </a>
     <a class="quick-link" href="/#data" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
       数据中心
     </a>
     <a class="quick-link" href="/#ai" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
       AI 对话
     </a>
   </div>
 
   <!-- 总览统计 -->
   <div class="summary-row" id="summaryRow">
-    <div class="summary-card"><div class="label">系统状态</div><div class="value gray" id="sumStatus">--</div><div class="sub" id="sumStatusSub"></div></div>
-    <div class="summary-card"><div class="label">知识库文件</div><div class="value blue" id="sumKbFiles">--</div><div class="sub" id="sumKbSub"></div></div>
+    <div class="summary-card"><div class="label">系统状态</div><div class="value red" id="sumStatus">无法连接</div><div class="sub" id="sumStatusSub">后端 API 不可达</div></div>
+    <div class="summary-card"><div class="label">知识库文件</div><div class="value gray" id="sumKbFiles">--</div><div class="sub" id="sumKbSub"></div></div>
     <div class="summary-card"><div class="label">文档处理</div><div class="value gray" id="sumDocTotal">--</div><div class="sub" id="sumDocSub"></div></div>
     <div class="summary-card"><div class="label">AI 引擎</div><div class="value gray" id="sumAi">--</div><div class="sub" id="sumAiSub"></div></div>
   </div>
@@ -171,13 +170,13 @@
     <!-- 服务状态 -->
     <div class="card">
       <div class="card-header">服务状态</div>
-      <div class="card-body" id="healthContent"><div class="loading">加载中...</div></div>
+      <div class="card-body" id="healthContent"><div class="error-inline">获取失败</div></div>
     </div>
 
     <!-- AI 引擎 -->
     <div class="card">
       <div class="card-header">AI 引擎</div>
-      <div class="card-body" id="aiContent"><div class="loading">加载中...</div></div>
+      <div class="card-body" id="aiContent"><div class="error-inline">获取失败</div></div>
     </div>
   </div>
 
@@ -185,13 +184,13 @@
     <!-- 知识库统计 -->
     <div class="card">
       <div class="card-header">知识库统计</div>
-      <div class="card-body" id="kbContent"><div class="loading">加载中...</div></div>
+      <div class="card-body" id="kbContent"><div class="error-inline">获取失败</div></div>
     </div>
 
     <!-- 文档处理统计 -->
     <div class="card">
       <div class="card-header">文档处理统计</div>
-      <div class="card-body" id="docContent"><div class="loading">加载中...</div></div>
+      <div class="card-body" id="docContent"><div class="error-inline">获取失败</div></div>
     </div>
   </div>
 
@@ -199,16 +198,17 @@
   <div class="grid">
     <div class="card">
       <div class="card-header">资源占用</div>
-      <div class="card-body" id="monitorContent"><div class="loading">加载中...</div></div>
+      <div class="card-body" id="monitorContent"><div class="error-inline">获取失败</div></div>
     </div>
   </div>
 
-  <div class="last-update" id="lastUpdate">等待刷新...</div>
+  <div class="last-update" id="lastUpdate">上次更新: 2026-08-28 10:43:30</div>
 </div>
 
 <script>
 var API_BASE = "/api/v1";
 var refreshTimer = null;
+var monitorTimer = null;
 var countdownTimer = null;
 var countdownSec = 0;
 
@@ -223,6 +223,7 @@ function startAutoRefresh(){
   countdownSec = 30;
   refreshAll();
   refreshTimer = setInterval(refreshAll, 30000);
+  monitorTimer = setInterval(refreshMonitor, 2000);
   countdownTimer = setInterval(function(){
     countdownSec--;
     if(countdownSec <= 0) countdownSec = 30;
@@ -232,6 +233,7 @@ function startAutoRefresh(){
 
 function stopAutoRefresh(){
   if(refreshTimer){ clearInterval(refreshTimer); refreshTimer = null; }
+  if(monitorTimer){ clearInterval(monitorTimer); monitorTimer = null; }
   if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
   document.getElementById("countdown").textContent = "--";
 }
@@ -266,20 +268,21 @@ function refreshAll(){
   btn.disabled = true;
   btn.textContent = "刷新中...";
 
+  // 首次加载也刷新一次监控
+  refreshMonitor();
+
   Promise.all([
     fetchJSON(API_BASE + "/health").catch(function(e){ return null; }),
     fetchJSON(API_BASE + "/ai/status").catch(function(e){ return null; }),
     fetchJSON(API_BASE + "/kb/stats").catch(function(e){ return null; }),
-    fetchJSON(API_BASE + "/documents/stats").catch(function(e){ return null; }),
-    fetchJSON(API_BASE + "/monitor").catch(function(e){ return null; })
+    fetchJSON(API_BASE + "/documents/stats").catch(function(e){ return null; })
   ]).then(function(results){
-    var health = results[0], ai = results[1], kb = results[2], doc = results[3], monitor = results[4];
+    var health = results[0], ai = results[1], kb = results[2], doc = results[3];
     renderSummary(health, ai, kb, doc);
     renderHealth(health);
     renderAI(ai);
     renderKB(kb);
     renderDoc(doc);
-    renderMonitor(monitor);
 
     var now = new Date();
     document.getElementById("lastUpdate").textContent = "上次更新: " +
@@ -485,8 +488,15 @@ function renderMonitor(d){
     '</table>';
 }
 
+// 独立刷新资源监控
+function refreshMonitor(){
+  fetchJSON(API_BASE + "/monitor").then(function(d){
+    renderMonitor(d);
+  }).catch(function(){ /* ignore */ });
+}
+
 // 启动
 startAutoRefresh();
 </script>
-</body>
-</html>
+
+</body></html>
