@@ -68,6 +68,9 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 .law-item-actions .btn-view:hover{background:#1d4ed8}
 .law-item-actions .btn-download{background:#059669;color:#fff;border-color:#059669}
 .law-item-actions .btn-download:hover{background:#047857}
+.law-filter-bar{padding:8px 16px;border-bottom:1px solid #e5e7eb}
+.law-filter-bar input{width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;outline:none;box-sizing:border-box;transition:border-color .15s}
+.law-filter-bar input:focus{border-color:#2563eb}
 
 .law-detail-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
 .law-detail-header h2{flex:1;margin:0;font-size:20px;color:#1a1a1a}
@@ -739,6 +742,9 @@ function lawPage(){
 
     <section class="panel">
       <h2 id="lawTitle">国家法律</h2>
+      <div class="law-filter-bar">
+        <input id="lawSearchInput" type="text" placeholder="在当前分类中搜索法规名称..." oninput="filterLawList()">
+      </div>
       <div id="lawList" class="law-list">
         <div class="empty">
           <strong>暂无真实法律法规数据</strong>
@@ -840,6 +846,10 @@ function showLawCategory(category){
 
   title.textContent=titles[category] || "安全法律";
 
+  // 清空搜索框
+  const searchInput=document.getElementById("lawSearchInput");
+  if(searchInput) searchInput.value="";
+
   list.innerHTML=`<div class="empty"><strong>正在加载...</strong></div>`;
 
   // 调用知识库列表接口，按 file_type 筛选（从数据库获取，不需要 laws_api）
@@ -851,47 +861,78 @@ function showLawCategory(category){
     .then(files=>{
       if(files.length===0){
         list.innerHTML=`<div class="empty"><strong>暂无法律法规数据</strong><span>该分类下暂未收录任何法律文件。</span></div>`;
+        _lawData = null;
         return;
       }
-      // 从文件名提取版本日期（_YYYYMMDD）
-      function extractVersion(stem){
-        const m=stem.match(/_(\d{8})$/);
-        return m ? m[1] : "";
-      }
-      list.innerHTML=files.map(file=>{
-        const filename=file.filename;
-        const stem=filename.replace(/\.[^.]+$/,"");
-        const version=extractVersion(stem);
-        const displayTitle=stem.replace(/_(\d{8})$/,""); // 去掉版本后缀显示
-        const url=`law_detail.html?filename=${encodeURIComponent(filename)}&category=${encodeURIComponent(category)}&title=${encodeURIComponent(displayTitle)}`;
-        return `
-        <div class="law-item">
-          <div class="law-item-info">
-            <div class="law-item-title">${escapeHtml(displayTitle)}</div>
-            ${version ? `<div class="law-item-version">${escapeHtml(version)}</div>` : ""}
-          </div>
-          <div class="law-item-actions">
-            <a href="${url}" target="_blank" class="btn-view">查看</a>
-            <button class="btn-download" onclick="event.stopPropagation();downloadLawFromFile('${escapeHtml(filename)}','${escapeHtml(displayTitle)}')">下载</button>
-          </div>
-        </div>
-      `;
-      }).join("");
-
-      // 点击行任意位置打开新窗口（排除点击按钮/链接的情况）
-      list.querySelectorAll(".law-item").forEach(row=>{
-        row.onclick=function(e){
-          if(e.target.closest("a,button")) return;
-          const firstLink=row.querySelector(".btn-view");
-          if(firstLink && firstLink.href){
-            window.open(firstLink.href, "_blank");
-          }
-        };
-      });
+      _lawData = {files, category};
+      filterLawList();
     })
     .catch(err=>{
       list.innerHTML=`<div class="empty"><strong>加载失败</strong><span>${escapeHtml(err.message)}</span></div>`;
+      _lawData = null;
     });
+}
+
+let _lawData = null;
+
+function filterLawList(){
+  const list=document.getElementById("lawList");
+  if(!list) return;
+  if(!_lawData || !_lawData.files || _lawData.files.length===0){
+    list.innerHTML=`<div class="empty"><strong>暂无法律法规数据</strong><span>该分类下暂未收录任何法律文件。</span></div>`;
+    return;
+  }
+
+  const searchInput=document.getElementById("lawSearchInput");
+  const keyword = (searchInput ? searchInput.value : "").trim().toLowerCase();
+  const {files, category} = _lawData;
+
+  // 从文件名提取版本日期（_YYYYMMDD）
+  function extractVersion(stem){
+    const m=stem.match(/_(\d{8})$/);
+    return m ? m[1] : "";
+  }
+
+  const filtered = keyword ? files.filter(file=>{
+    const stem=file.filename.replace(/\.[^.]+$/,"");
+    const displayTitle=stem.replace(/_(\d{8})$/,"");
+    return displayTitle.toLowerCase().includes(keyword);
+  }) : files;
+
+  if(filtered.length===0){
+    list.innerHTML=`<div class="empty"><strong>未找到匹配结果</strong><span>当前分类中没有标题包含"${escapeHtml(keyword)}"的法规。</span></div>`;
+    return;
+  }
+
+  list.innerHTML=filtered.map(file=>{
+    const filename=file.filename;
+    const stem=filename.replace(/\.[^.]+$/,"");
+    const version=extractVersion(stem);
+    const displayTitle=stem.replace(/_(\d{8})$/,"");
+    const url=`law_detail.html?filename=${encodeURIComponent(filename)}&category=${encodeURIComponent(category)}&title=${encodeURIComponent(displayTitle)}`;
+    return `
+    <div class="law-item">
+      <div class="law-item-info">
+        <div class="law-item-title">${escapeHtml(displayTitle)}</div>
+        ${version ? `<div class="law-item-version">${escapeHtml(version)}</div>` : ""}
+      </div>
+      <div class="law-item-actions">
+        <a href="${url}" target="_blank" class="btn-view">查看</a>
+        <button class="btn-download" onclick="event.stopPropagation();downloadLawFromFile('${escapeHtml(filename)}','${escapeHtml(displayTitle)}')">下载</button>
+      </div>
+    </div>
+  `;
+  }).join("");
+
+  list.querySelectorAll(".law-item").forEach(row=>{
+    row.onclick=function(e){
+      if(e.target.closest("a,button")) return;
+      const firstLink=row.querySelector(".btn-view");
+      if(firstLink && firstLink.href){
+        window.open(firstLink.href, "_blank");
+      }
+    };
+  });
 }
 
 function showLawDetail(lawId){
