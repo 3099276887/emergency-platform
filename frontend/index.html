@@ -261,7 +261,7 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-page{
   display:flex;flex-direction:column;
   height:calc(100vh - 64px);
-  overflow:hidden;
+  overflow:visible;
   background:transparent;
   margin:-28px;
 }
@@ -280,11 +280,14 @@ body.side-collapsed aside .law-subnav{display:none}
   object-fit:contain;background:#f5f5f5;cursor:pointer;
 }
 /* 输入区：DeepSeek 风格，底部固定圆角输入框 */
-.chat-input{
+.chat-input-area{
   position:sticky;
   bottom:0;
   width:70%;max-width:900px;
   margin:0 auto;
+}
+.chat-input{
+  width:100%;
   padding:6px 0 10px;
   background:#eef2f5;flex-shrink:0;
   display:flex;flex-direction:column;gap:6px;
@@ -298,9 +301,10 @@ body.side-collapsed aside .law-subnav{display:none}
   border-color:#d0d0d0;box-shadow:0 2px 16px rgba(0,0,0,0.12);
 }
 .chat-input-row{
-  display:flex;gap:8px;align-items:flex-end;
+  display:flex;align-items:flex-end;
 }
 .chat-btn-new-chat{
+  position:absolute;left:100%;bottom:16px;margin-left:8px;
   flex-shrink:0;white-space:nowrap;padding:8px 16px;
   border:1px solid #e5e5e5;border-radius:10px;
   background:#fff;color:#1a1a1a;cursor:pointer;
@@ -699,44 +703,46 @@ body.side-collapsed aside .law-subnav{display:none}
       </div>
     </div>
 
-      <div class="chat-input">
-        <div class="chat-rag-bar">
-          <div class="chat-rag-bar-row">
-            <label class="rag-toggle-label">
-              <input type="checkbox" id="ragToggle"> RAG
-            </label>
-            <button id="ragEditBtn" class="rag-edit-btn" type="button" style="display:none">编辑</button>
-          </div>
-          <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
-            <span class="rag-tag-label">类型</span>
-            <div class="tag-selector" id="ragFileTypeTags"><button type="button" data-value="暂定" class="tag-option">暂定</button><button type="button" data-value="国家法律" class="tag-option">国家法律</button><button type="button" data-value="行政法规" class="tag-option">行政法规</button><button type="button" data-value="地方法规" class="tag-option">地方法规</button></div>
-            <span class="rag-tag-label">省份</span>
-            <div class="tag-selector" id="ragProvinceTags"><button type="button" data-value="北京" class="tag-option">北京</button><button type="button" data-value="天津" class="tag-option">天津</button><button type="button" data-value="上海" class="tag-option">上海</button><button type="button" data-value="重庆" class="tag-option">重庆</button><button type="button" data-value="河北" class="tag-option">河北</button><button type="button" data-value="山西" class="tag-option">山西</button><button type="button" data-value="内蒙古" class="tag-option">内蒙古</button><button type="button" data-value="辽宁" class="tag-option">辽宁</button><button type="button" data-value="吉林" class="tag-option">吉林</button><button type="button" data-value="黑龙江" class="tag-option">黑龙江</button><button type="button" data-value="江苏" class="tag-option">江苏</button><button type="button" data-value="浙江" class="tag-option">浙江</button><button type="button" data-value="安徽" class="tag-option">安徽</button><button type="button" data-value="福建" class="tag-option">福建</button><button type="button" data-value="江西" class="tag-option">江西</button><button type="button" data-value="山东" class="tag-option">山东</button><button type="button" data-value="河南" class="tag-option">河南</button><button type="button" data-value="湖北" class="tag-option">湖北</button><button type="button" data-value="湖南" class="tag-option">湖南</button><button type="button" data-value="广东" class="tag-option">广东</button><button type="button" data-value="广西" class="tag-option">广西</button><button type="button" data-value="海南" class="tag-option">海南</button><button type="button" data-value="四川" class="tag-option">四川</button><button type="button" data-value="贵州" class="tag-option">贵州</button><button type="button" data-value="云南" class="tag-option">云南</button><button type="button" data-value="西藏" class="tag-option">西藏</button><button type="button" data-value="陕西" class="tag-option">陕西</button><button type="button" data-value="甘肃" class="tag-option">甘肃</button><button type="button" data-value="青海" class="tag-option">青海</button><button type="button" data-value="宁夏" class="tag-option">宁夏</button><button type="button" data-value="新疆" class="tag-option">新疆</button></div>
-            <span class="rag-tag-label">城市</span>
-            <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
-            <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
-          </div>
-        </div>
-        <div class="chat-input-row" style="width: 809.075px; height: 93.6px;">
-          <div class="chat-input-box">
-            <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
-            <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
-            <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-            </button>
-            <div class="chat-input-footer">
-              <div class="chat-input-actions">
-                <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
-                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
-                </button>
-                <button id="aiSend" class="chat-send-btn" type="button" title="发送">
-                  <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-                </button>
-              <input type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/*" multiple="" style="display: none;"></div>
+      <div class="chat-input-area">
+        <div class="chat-input">
+          <div class="chat-rag-bar">
+            <div class="chat-rag-bar-row">
+              <label class="rag-toggle-label">
+                <input type="checkbox" id="ragToggle"> RAG
+              </label>
+              <button id="ragEditBtn" class="rag-edit-btn" type="button" style="display:none">编辑</button>
+            </div>
+            <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
+              <span class="rag-tag-label">类型</span>
+              <div class="tag-selector" id="ragFileTypeTags"><button type="button" data-value="暂定" class="tag-option">暂定</button><button type="button" data-value="国家法律" class="tag-option">国家法律</button><button type="button" data-value="行政法规" class="tag-option">行政法规</button><button type="button" data-value="地方法规" class="tag-option">地方法规</button></div>
+              <span class="rag-tag-label">省份</span>
+              <div class="tag-selector" id="ragProvinceTags"><button type="button" data-value="北京" class="tag-option">北京</button><button type="button" data-value="天津" class="tag-option">天津</button><button type="button" data-value="上海" class="tag-option">上海</button><button type="button" data-value="重庆" class="tag-option">重庆</button><button type="button" data-value="河北" class="tag-option">河北</button><button type="button" data-value="山西" class="tag-option">山西</button><button type="button" data-value="内蒙古" class="tag-option">内蒙古</button><button type="button" data-value="辽宁" class="tag-option">辽宁</button><button type="button" data-value="吉林" class="tag-option">吉林</button><button type="button" data-value="黑龙江" class="tag-option">黑龙江</button><button type="button" data-value="江苏" class="tag-option">江苏</button><button type="button" data-value="浙江" class="tag-option">浙江</button><button type="button" data-value="安徽" class="tag-option">安徽</button><button type="button" data-value="福建" class="tag-option">福建</button><button type="button" data-value="江西" class="tag-option">江西</button><button type="button" data-value="山东" class="tag-option">山东</button><button type="button" data-value="河南" class="tag-option">河南</button><button type="button" data-value="湖北" class="tag-option">湖北</button><button type="button" data-value="湖南" class="tag-option">湖南</button><button type="button" data-value="广东" class="tag-option">广东</button><button type="button" data-value="广西" class="tag-option">广西</button><button type="button" data-value="海南" class="tag-option">海南</button><button type="button" data-value="四川" class="tag-option">四川</button><button type="button" data-value="贵州" class="tag-option">贵州</button><button type="button" data-value="云南" class="tag-option">云南</button><button type="button" data-value="西藏" class="tag-option">西藏</button><button type="button" data-value="陕西" class="tag-option">陕西</button><button type="button" data-value="甘肃" class="tag-option">甘肃</button><button type="button" data-value="青海" class="tag-option">青海</button><button type="button" data-value="宁夏" class="tag-option">宁夏</button><button type="button" data-value="新疆" class="tag-option">新疆</button></div>
+              <span class="rag-tag-label">城市</span>
+              <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
+              <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
             </div>
           </div>
-          <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
+          <div class="chat-input-row">
+            <div class="chat-input-box">
+              <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
+              <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
+              <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+              </button>
+              <div class="chat-input-footer">
+                <div class="chat-input-actions">
+                  <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+                  </button>
+                  <button id="aiSend" class="chat-send-btn" type="button" title="发送">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                  </button>
+                <input type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/*" multiple="" style="display: none;"></div>
+              </div>
+            </div>
+          </div>
         </div>
+        <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
       </div>
     </div>
   </section>
@@ -2046,44 +2052,46 @@ function aiPage(){
     <div class="chat-page">
       <div id="chatLog" class="chat-messages"></div>
 
-      <div class="chat-input">
-        <div class="chat-rag-bar">
-          <div class="chat-rag-bar-row">
-            <label class="rag-toggle-label">
-              <input type="checkbox" id="ragToggle" /> RAG
-            </label>
-            <button id="ragEditBtn" class="rag-edit-btn" type="button" style="display:none">编辑</button>
+      <div class="chat-input-area">
+        <div class="chat-input">
+          <div class="chat-rag-bar">
+            <div class="chat-rag-bar-row">
+              <label class="rag-toggle-label">
+                <input type="checkbox" id="ragToggle" /> RAG
+              </label>
+              <button id="ragEditBtn" class="rag-edit-btn" type="button" style="display:none">编辑</button>
+            </div>
+            <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
+              <span class="rag-tag-label">类型</span>
+              <div class="tag-selector" id="ragFileTypeTags"></div>
+              <span class="rag-tag-label">省份</span>
+              <div class="tag-selector" id="ragProvinceTags"></div>
+              <span class="rag-tag-label">城市</span>
+              <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
+              <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
+            </div>
           </div>
-          <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
-            <span class="rag-tag-label">类型</span>
-            <div class="tag-selector" id="ragFileTypeTags"></div>
-            <span class="rag-tag-label">省份</span>
-            <div class="tag-selector" id="ragProvinceTags"></div>
-            <span class="rag-tag-label">城市</span>
-            <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
-            <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
-          </div>
-        </div>
-        <div class="chat-input-row" style="width: 809.075px; height: 93.6px;">
-          <div class="chat-input-box">
-            <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
-            <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
-            <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-            <div class="chat-input-footer">
-              <div class="chat-input-actions">
-                <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
-                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                </button>
-                <button id="aiSend" class="chat-send-btn" type="button" title="发送">
-                  <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                </button>
+          <div class="chat-input-row">
+            <div class="chat-input-box">
+              <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
+              <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
+              <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <div class="chat-input-footer">
+                <div class="chat-input-actions">
+                  <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                  </button>
+                  <button id="aiSend" class="chat-send-btn" type="button" title="发送">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-          <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
         </div>
+        <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
       </div>
     </div>
   `;
