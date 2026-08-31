@@ -1993,7 +1993,8 @@ async function startAiStream(continuing){
           temperature:0.7,
           max_tokens:2048,
           enable_rag: enableRAG,
-          region: enableRAG ? ((document.getElementById("ragProvince")?.value||"") + (document.getElementById("ragCity")?.value ? "-"+document.getElementById("ragCity")?.value : "")) : ""
+          provinces: enableRAG ? (document.getElementById("ragProvince")?.value||"") : "",
+          cities: enableRAG ? (document.getElementById("ragCity")?.value||"") : ""
         })
       }
     );
