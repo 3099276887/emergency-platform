@@ -1,6 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>应急安全综合平台</title>
@@ -117,6 +116,18 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
   flex-wrap:wrap;
   gap:10px;
   margin:14px 0;
+  align-items:center;
+}
+.kb-filter-tabs{
+  display:inline-flex;gap:2px;background:#f0f0f0;border-radius:8px;padding:2px;
+}
+.kb-filter-tab{
+  display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:#555;
+  cursor:pointer;user-select:none;transition:all .15s;
+}
+.kb-filter-tab:hover{color:#333}
+.kb-filter-tab.active{
+  background:#fff;color:#2563eb;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
 
 .kb-filter input,
@@ -289,6 +300,13 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-input-row{
   display:flex;gap:8px;align-items:flex-end;
 }
+.chat-btn-new-chat{
+  flex-shrink:0;white-space:nowrap;padding:8px 16px;
+  border:1px solid #e5e5e5;border-radius:10px;
+  background:#fff;color:#1a1a1a;cursor:pointer;
+  font-size:14px;margin-bottom:0;
+}
+.chat-btn-new-chat:hover{background:#f5f5f5}
 .chat-input textarea{
   display:block;width:100%;max-height:280px;min-height:46px;
   border:none;outline:none;background:transparent;box-shadow:none;
@@ -370,13 +388,7 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-send-btn.state-stop:hover{background:#dc2626}
 .chat-send-btn.state-continue{background:#10b981}
 .chat-send-btn.state-continue:hover{background:#059669}
-.chat-btn-new-chat{
-  flex-shrink:0;white-space:nowrap;padding:8px 16px;
-  border:1px solid #e5e5e5;border-radius:10px;
-  background:#fff;color:#1a1a1a;cursor:pointer;
-  font-size:14px;margin-bottom:0;align-self:flex-end;
-}
-.chat-btn-new-chat:hover{background:#f5f5f5}
+
 .chat-image-preview{
   display:flex;flex-wrap:wrap;gap:8px;padding:4px 12px 2px;
 }
@@ -445,30 +457,294 @@ body.side-collapsed aside .law-subnav{display:none}
 <header>
 <div class="header-left">
   <button id="navToggle" type="button" title="收起/展开菜单">
-    <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
   </button>
   <strong>应急安全综合平台</strong>
 </div>
 <span>内网设备：192.168.10.101</span>
 <span id="aiStatusBar" class="ai-status-bar" title="AI 服务状态">
-  <span class="ai-status-dot" id="aiStatusDot"></span>
-  <span id="aiStatusText">检测中...</span>
+  <span class="ai-status-dot offline" id="aiStatusDot"></span>
+  <span id="aiStatusText">无法连接</span>
 </span>
 </header>
 
 <div class="layout">
-<aside id="nav"></aside>
+<aside id="nav">
+      <button class="" data-key="ai" title="AI 对话">
+        <span class="nav-icon">AI</span>
+        <span class="nav-label">　AI 对话</span>
+      </button>
+    
+      <button class="" data-key="law" title="安全法律">
+        <span class="nav-icon">法</span>
+        <span class="nav-label">　安全法律</span>
+      </button>
+    
+        <div class="law-subnav">
+          
+            <button class="" data-law-category="national">
+              国家法律
+            </button>
+          
+            <button class="" data-law-category="administrative">
+              行政法规
+            </button>
+          
+            <button class="" data-law-category="local">
+              地方法规
+            </button>
+          
+            <button class="" data-law-category="pending">
+              暂定
+            </button>
+          
+        </div>
+      
+      <button class="active" data-key="knowledge" title="知识库">
+        <span class="nav-icon">库</span>
+        <span class="nav-label">　知识库</span>
+      </button>
+    
+      <button class="" data-key="data" title="数据中心">
+        <span class="nav-icon">数</span>
+        <span class="nav-label">　数据中心</span>
+      </button>
+    
+      <button class="" data-key="documents" title="文档处理">
+        <span class="nav-icon">文</span>
+        <span class="nav-label">　文档处理</span>
+      </button>
+    </aside>
 <main id="app">
-  <section id="page-law" class="page"></section>
-  <section id="page-knowledge" class="page"></section>
-  <section id="page-data" class="page"></section>
-  <section id="page-documents" class="page"></section>
-  <section id="page-ai" class="page"></section>
+  <section id="page-law" class="page">
+    <div class="crumb">当前位置 / 安全法律</div>
+    <h1>安全法律</h1>
+    <p class="desc">查看安全生产、应急管理和消防减灾相关法律法规。</p>
+
+    <section class="panel">
+      <h2 id="lawTitle">国家法律</h2>
+      <div class="law-filter-bar">
+        <input id="lawSearchInput" type="text" placeholder="在当前分类中搜索法规名称..." oninput="filterLawList()">
+      </div>
+      <div id="lawList" class="law-list">
+        <div class="empty">
+          <strong>暂无真实法律法规数据</strong>
+          <span>接入法律法规接口后，此处显示实际内容。</span>
+        </div>
+      </div>
+    </section>
+  </section>
+  <section id="page-knowledge" class="page active">
+    <div class="crumb">当前位置 / 知识库</div>
+    <h1>知识库</h1>
+    <p class="desc">管理知识库文件：上传、查看、删除与筛选。</p>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2>知识库文件管理</h2>
+        <button id="kbRefreshBtn" class="btn-secondary">刷新</button>
+      </div>
+
+      <div class="field">
+        <label for="kbFileInput">上传文件（支持 .txt .docx .pdf，可多选）</label>
+        <input id="kbFileInput" type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" multiple="" style="width:200px">
+      </div>
+
+      <div class="field">
+        <label>文件类型 <span style="color:#c94135">*</span></label>
+        <select id="kbUploadFileType" class="kb-upload-type-select" style="width:160px">
+          <option value="">暂定</option>
+          <option value="国家法律">国家法律</option>
+          <option value="行政法规">行政法规</option>
+          <option value="地方法规">地方法规</option>
+        </select>
+      </div>
+
+      <button id="kbUploadBtn" class="btn">上传并建立索引</button>
+      <p id="kbStatus" class="note error">文件列表加载失败：Failed to fetch</p>
+
+      <div class="kb-filter">
+        <span class="kb-filter-tabs" id="kbFilterTabs">
+          <span class="kb-filter-tab active" data-type="">全部</span>
+          <span class="kb-filter-tab" data-type="国家法律">国家法律</span>
+          <span class="kb-filter-tab" data-type="行政法规">行政法规</span>
+          <span class="kb-filter-tab" data-type="地方法规">地方法规</span>
+        </span>
+        <input id="kbKeywordInput" type="text" placeholder="文件名关键字">
+        <select id="kbStatusFilter">
+          <option value="">全部状态</option>
+          <option value="building">建立中</option>
+          <option value="ready">就绪</option>
+          <option value="failed">失败</option>
+        </select>
+        <button id="kbSearchBtn" class="btn-secondary">搜索</button>
+      </div>
+
+      <div class="kb-batch-bar kb-batch-bar-standalone" id="kbBatchBar" style="display:none">
+        <label><input type="checkbox" id="kbSelectAll"> 全选</label>
+        <span class="kb-batch-count" id="kbBatchCount">已选 0 项</span>
+        <button id="kbBatchViewBtn" class="btn-secondary" disabled="">批量查看</button>
+        <button id="kbBatchDeleteBtn" class="btn-danger" disabled="">批量删除</button>
+        </div>
+
+      <div id="kbFileList"></div>
+    </section>
+  </section>
+  <section id="page-data" class="page">
+    <div class="crumb">当前位置 / 数据中心</div>
+    <h1>数据中心</h1>
+    <p class="desc">查看文档处理任务及其生成结果。</p>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2>历史任务</h2>
+        <div class="btn-group">
+          <div class="kb-batch-bar" id="dataBatchBar" style="display:none">
+            <label><input type="checkbox" id="dataSelectAll"> 全选</label>
+            <span class="kb-batch-count" id="dataBatchCount">已选 0 项</span>
+            <button id="dataBatchViewBtn" class="btn-secondary" disabled="">批量查看</button>
+            <button id="dataBatchDeleteBtn" class="btn-danger" disabled="">批量删除</button>
+          </div>
+          <button id="dataDiscardBtn" class="btn-danger">丢弃</button>
+          <button id="dataPauseBtn" class="btn-secondary">暂停</button>
+          <button id="dataRefreshBtn" class="btn-secondary">刷新</button>
+        </div>
+      </div>
+
+      <p id="dataStatus" class="note error">历史任务加载失败：Failed to fetch</p>
+      <div id="dataTaskList"></div>
+      <div id="dataPagination" class="pagination" style="display:none;margin-top:12px;text-align:center"></div>
+    </section>
+  </section>
+  <section id="page-documents" class="page">
+    <div class="crumb">当前位置 / 文档处理</div>
+    <h1>AI 文档处理</h1>
+    <p class="desc">调用本地 SafeRAG 处理文档并生成报告。</p>
+
+    <section class="panel">
+      <h2>提交任务</h2>
+
+      <div class="field">
+        <label for="taskType">任务类型</label>
+        <select id="taskType"><option value="">加载失败</option></select>
+        <p id="taskDescription" class="note">Failed to fetch</p>
+      </div>
+
+      <div class="field">
+        <label for="documentContent">粘贴文档内容</label>
+        <textarea id="documentContent" placeholder="请粘贴需要处理的真实文档内容"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="instruction">处理要求</label>
+        <textarea id="instruction" placeholder="请输入具体的分析、审查或整理要求">请整理文档结构，保留原始事实，不得虚构内容。</textarea>
+      </div>
+
+      <div class="field">
+        <label for="fileName">输出文件名</label>
+        <input id="fileName" type="text" value="处理结果.md" placeholder="例如：安全分析报告">
+      </div>
+
+      <div class="field">
+        <label for="docRegionInput">适用地区（可选，限定地方法规检索范围）</label>
+        <input id="docRegionInput" type="text" placeholder="例如：上海、北京、安徽" style="max-width:300px">
+      </div>
+
+      <button id="processBtn" class="btn">
+        开始处理
+      </button>
+
+      <p id="documentStatus" class="note">
+        
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>生成结果</h2>
+
+      <pre id="resultContent" class="result">尚未提交任务</pre>
+
+      <div id="downloadArea" class="btn-group" style="margin-top:12px;flex-wrap:wrap" hidden="">
+        <select id="downloadFormatSelect" style="padding:8px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit">
+          <option value="md">Markdown (.md)</option>
+          <option value="docx">Word 文档 (.docx)</option>
+        </select>
+        <a id="downloadLink" class="download" href="" style="margin:0">
+          下载生成文档
+        </a>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2>历史任务</h2>
+        <div class="btn-group">
+          <button id="docDiscardBtn" class="btn-danger" disabled="">丢弃</button>
+          <button id="docPauseBtn" class="btn-secondary" disabled="">暂停</button>
+          <button id="refreshDocuments" class="btn-secondary">
+            刷新
+          </button>
+        </div>
+      </div>
+
+      <div id="documentList">历史任务加载失败：Failed to fetch</div>
+    </section>
+  </section>
+  <section id="page-ai" class="page">
+    <div class="chat-page">
+      <div id="chatLog" class="chat-messages">
+      <div class="chat-empty">
+        <strong>开始对话</strong>
+        <span>请输入问题，与本地 AI 模型交流。</span>
+      </div>
+    </div>
+
+      <div class="chat-input">
+        <div class="chat-rag-bar">
+          <div class="chat-rag-bar-row">
+            <label class="rag-toggle-label">
+              <input type="checkbox" id="ragToggle"> RAG
+            </label>
+            <button id="ragEditBtn" class="rag-edit-btn" type="button" style="display:none">编辑</button>
+          </div>
+          <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
+            <span class="rag-tag-label">类型</span>
+            <div class="tag-selector" id="ragFileTypeTags"><button type="button" data-value="暂定" class="tag-option">暂定</button><button type="button" data-value="国家法律" class="tag-option">国家法律</button><button type="button" data-value="行政法规" class="tag-option">行政法规</button><button type="button" data-value="地方法规" class="tag-option">地方法规</button></div>
+            <span class="rag-tag-label">省份</span>
+            <div class="tag-selector" id="ragProvinceTags"><button type="button" data-value="北京" class="tag-option">北京</button><button type="button" data-value="天津" class="tag-option">天津</button><button type="button" data-value="上海" class="tag-option">上海</button><button type="button" data-value="重庆" class="tag-option">重庆</button><button type="button" data-value="河北" class="tag-option">河北</button><button type="button" data-value="山西" class="tag-option">山西</button><button type="button" data-value="内蒙古" class="tag-option">内蒙古</button><button type="button" data-value="辽宁" class="tag-option">辽宁</button><button type="button" data-value="吉林" class="tag-option">吉林</button><button type="button" data-value="黑龙江" class="tag-option">黑龙江</button><button type="button" data-value="江苏" class="tag-option">江苏</button><button type="button" data-value="浙江" class="tag-option">浙江</button><button type="button" data-value="安徽" class="tag-option">安徽</button><button type="button" data-value="福建" class="tag-option">福建</button><button type="button" data-value="江西" class="tag-option">江西</button><button type="button" data-value="山东" class="tag-option">山东</button><button type="button" data-value="河南" class="tag-option">河南</button><button type="button" data-value="湖北" class="tag-option">湖北</button><button type="button" data-value="湖南" class="tag-option">湖南</button><button type="button" data-value="广东" class="tag-option">广东</button><button type="button" data-value="广西" class="tag-option">广西</button><button type="button" data-value="海南" class="tag-option">海南</button><button type="button" data-value="四川" class="tag-option">四川</button><button type="button" data-value="贵州" class="tag-option">贵州</button><button type="button" data-value="云南" class="tag-option">云南</button><button type="button" data-value="西藏" class="tag-option">西藏</button><button type="button" data-value="陕西" class="tag-option">陕西</button><button type="button" data-value="甘肃" class="tag-option">甘肃</button><button type="button" data-value="青海" class="tag-option">青海</button><button type="button" data-value="宁夏" class="tag-option">宁夏</button><button type="button" data-value="新疆" class="tag-option">新疆</button></div>
+            <span class="rag-tag-label">城市</span>
+            <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
+            <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
+          </div>
+        </div>
+        <div class="chat-input-row" style="width: 809.075px; height: 93.6px;">
+          <div class="chat-input-box">
+            <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
+            <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
+            <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+            </button>
+            <div class="chat-input-footer">
+              <div class="chat-input-actions">
+                <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
+                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path></svg>
+                </button>
+                <button id="aiSend" class="chat-send-btn" type="button" title="发送">
+                  <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                </button>
+              <input type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/*" multiple="" style="display: none;"></div>
+            </div>
+          </div>
+          <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 </div>
 
 <button id="backToTop" class="back-to-top" title="回到最上方">
-  <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"></path></svg>
 </button>
 
 <script>
@@ -805,12 +1081,12 @@ function knowledgePage(){
 
       <div class="field">
         <label for="kbFileInput">上传文件（支持 .txt .docx .pdf，可多选）</label>
-        <input id="kbFileInput" type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" multiple>
+        <input id="kbFileInput" type="file" accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" multiple style="width:200px">
       </div>
 
       <div class="field">
         <label>文件类型 <span style="color:#c94135">*</span></label>
-        <select id="kbUploadFileType" class="kb-upload-type-select">
+        <select id="kbUploadFileType" class="kb-upload-type-select" style="width:160px">
           <option value="">暂定</option>
           <option value="国家法律">国家法律</option>
           <option value="行政法规">行政法规</option>
@@ -822,10 +1098,13 @@ function knowledgePage(){
       <p id="kbStatus" class="note"></p>
 
       <div class="kb-filter">
+        <span class="kb-filter-tabs" id="kbFilterTabs">
+          <span class="kb-filter-tab active" data-type="">全部</span>
+          <span class="kb-filter-tab" data-type="国家法律">国家法律</span>
+          <span class="kb-filter-tab" data-type="行政法规">行政法规</span>
+          <span class="kb-filter-tab" data-type="地方法规">地方法规</span>
+        </span>
         <input id="kbKeywordInput" type="text" placeholder="文件名关键字">
-        <input id="kbFilterFileType" type="text" placeholder="文件类型（如：国家法律）" style="width:130px">
-        <input id="kbFilterProvince" type="text" placeholder="省份" style="width:80px">
-        <input id="kbFilterCity" type="text" placeholder="城市" style="width:80px">
         <select id="kbStatusFilter">
           <option value="">全部状态</option>
           <option value="building">建立中</option>
@@ -1101,14 +1380,9 @@ async function loadKnowledgeFiles(){
   const keyword=keywordInput ? keywordInput.value.trim() : "";
   const statusValue=statusInput ? statusInput.value : "";
 
-  // 从文本框获取筛选值
-  var filterFileTypeInput=document.getElementById("kbFilterFileType");
-  var filterProvinceInput=document.getElementById("kbFilterProvince");
-  var filterCityInput=document.getElementById("kbFilterCity");
-
-  var filterFileTypes=filterFileTypeInput ? filterFileTypeInput.value.trim().split(/[,，\s]+/).filter(Boolean) : [];
-  var filterProvinces=filterProvinceInput ? filterProvinceInput.value.trim().split(/[,，\s]+/).filter(Boolean) : [];
-  var filterCities=filterCityInput ? filterCityInput.value.trim().split(/[,，\s]+/).filter(Boolean) : [];
+  // 从分类标签获取筛选值
+  var activeTab=document.querySelector(".kb-filter-tab.active");
+  var filterFileTypes=activeTab && activeTab.dataset.type ? [activeTab.dataset.type] : [];
 
   const params=new URLSearchParams();
 
@@ -1117,8 +1391,6 @@ async function loadKnowledgeFiles(){
   }
 
   filterFileTypes.forEach(function(v){params.append("file_type",v);});
-  filterProvinces.forEach(function(v){params.append("provinces",v);});
-  filterCities.forEach(function(v){params.append("cities",v);});
 
   if(statusValue){
     params.set("status",statusValue);
@@ -1792,7 +2064,7 @@ function aiPage(){
             <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
           </div>
         </div>
-        <div class="chat-input-row">
+        <div class="chat-input-row" style="width: 809.075px; height: 93.6px;">
           <div class="chat-input-box">
             <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
             <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
@@ -3220,6 +3492,20 @@ if(kbSearchButton){
   kbSearchButton.onclick=loadKnowledgeFiles;
 }
 
+// 分类标签点击切换
+function initKbFilterTabs(){
+  document.querySelectorAll(".kb-filter").forEach(function(filter){
+    var tabs=filter.querySelectorAll(".kb-filter-tab");
+    tabs.forEach(function(tab){
+      tab.onclick=function(){
+        tabs.forEach(function(t){t.classList.remove("active");});
+        this.classList.add("active");
+      };
+    });
+  });
+}
+initKbFilterTabs();
+
 loadTaskTypes();
 loadDocuments();
 
@@ -3630,6 +3916,24 @@ async function fetchAiStatus(){
 fetchAiStatus();
 setInterval(fetchAiStatus, 15000); // 每15秒刷新一次
 </script>
-</body>
-</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>
 
