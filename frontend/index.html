@@ -328,6 +328,11 @@ body.side-collapsed aside .law-subnav{display:none}
   border-bottom:1px solid #f0f0f0;
 }
 .rag-tag-label{font-size:12px;color:#888;flex-shrink:0}
+.kb-upload-type-select{
+  width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;
+  font-size:14px;background:#fff;color:#333;cursor:pointer;
+}
+.kb-upload-type-select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
 .chat-input-actions{
   display:flex;align-items:center;gap:4px;
 }
@@ -791,7 +796,11 @@ function knowledgePage(){
 
       <div class="field">
         <label>文件类型 <span style="color:#c94135">*</span></label>
-        <div class="tag-selector" id="kbUploadFileTypeTags"></div>
+        <select id="kbUploadFileType" class="kb-upload-type-select">
+          <option value="国家法律">国家法律</option>
+          <option value="行政法规">行政法规</option>
+          <option value="地方法规">地方法规</option>
+        </select>
       </div>
 
       <button id="kbUploadBtn" class="btn">上传并建立索引</button>
@@ -1086,9 +1095,9 @@ function createTagSelector(container, options, selectedValues, onChange, foldabl
           this.classList.add("selected");
         }
         if(onChange) onChange(Array.from(selected));
-        if(isFoldable && selected.size>0){
-          // 延迟折叠，让用户看到变化
-          setTimeout(render,300);
+        // 如果全取消了，折叠模式下自动收起
+        if(isFoldable && selected.size===0){
+          render();
         }
       };
       frag.appendChild(btn);
@@ -1345,10 +1354,11 @@ async function uploadKnowledgeFile(){
     return;
   }
 
-  // 从标签选择器获取文件类型
-  var uploadFileTypes=window.__kbUploadFileTypes || [];
+  // 从下拉框获取文件类型
+  var uploadFileTypeEl=document.getElementById("kbUploadFileType");
+  var uploadFileType=uploadFileTypeEl ? uploadFileTypeEl.value : "";
 
-  if(uploadFileTypes.length===0){
+  if(!uploadFileType){
     status.textContent="请选择文件类型才能上传";
     status.className="note error";
     return;
@@ -1384,8 +1394,8 @@ async function uploadKnowledgeFile(){
       const formData=new FormData();
       formData.append("file",file);
 
-      // 文件类型数组
-      uploadFileTypes.forEach(function(v){formData.append("file_type",v);});
+      // 文件类型
+      formData.append("file_type",uploadFileType);
 
       // 每个文件自动从文件名识别地区
       var detected=autoDetectRegion(file.name);
@@ -1801,12 +1811,10 @@ function aiPage(){
       <div id="chatLog" class="chat-messages"></div>
 
       <div class="chat-input">
-        <div class="chat-input-box">
-          <div class="chat-rag-bar">
-            <label class="rag-toggle-label">
-              <input type="checkbox" id="ragToggle" /> RAG
-            </label>
-          </div>
+        <div class="chat-rag-bar">
+          <label class="rag-toggle-label">
+            <input type="checkbox" id="ragToggle" /> RAG
+          </label>
           <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
             <span class="rag-tag-label">类型</span>
             <div class="tag-selector foldable" id="ragFileTypeTags"></div>
@@ -1815,6 +1823,8 @@ function aiPage(){
             <span class="rag-tag-label">城市</span>
             <div class="tag-selector foldable" id="ragCityTags"></div>
           </div>
+        </div>
+        <div class="chat-input-box">
           <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
           <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
           <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
@@ -3313,15 +3323,6 @@ loadDocuments();
     var provinceOptions=Object.keys(provinceToCities).map(function(p){
       return {label:p,value:p};
     });
-
-    // 上传弹窗标签
-    var uploadFileTypeEl=document.getElementById("kbUploadFileTypeTags");
-    if(uploadFileTypeEl){
-      window.__kbUploadFileTypes=[];
-      createTagSelector(uploadFileTypeEl,fileTypeOptions,[],function(vals){
-        window.__kbUploadFileTypes=vals;
-      },true);
-    }
 
     // RAG 标签（可折叠）
     var ragProvinceEl=document.getElementById("ragProvinceTags");
