@@ -451,6 +451,7 @@ const API_BASE="/api/v1";
 let documentPollTimer=null;
 let currentDocumentId=null;
 let dataCenterTimer=null;
+let dataCenterPageNum=1;
 const nav=document.getElementById("nav");
 const app=document.getElementById("app");
 const CHAT_STORAGE_KEY = "emergency_ai_chat_v1";
@@ -691,6 +692,11 @@ function dataCenterPage(){
 
       <p id="dataStatus" class="note">正在加载任务...</p>
       <div id="dataTaskList"></div>
+      <div id="dataPagination" class="pagination" style="display:none;margin-top:12px;text-align:center">
+        <button id="dataPrevPage" class="btn-secondary" disabled>上一页</button>
+        <span id="dataPageInfo" style="margin:0 12px;font-size:14px;color:#555"></span>
+        <button id="dataNextPage" class="btn-secondary" disabled>下一页</button>
+      </div>
     </section>
   `;
 }
@@ -2422,7 +2428,7 @@ async function loadDataCenterTasks(silent=false){
 
   try{
     const response=await fetch(
-      API_BASE+"/documents?page=1&page_size=50",
+      API_BASE+"/documents?page="+dataCenterPageNum+"&page_size=30",
       {
         method:"GET",
         headers:{
@@ -2449,6 +2455,8 @@ async function loadDataCenterTasks(silent=false){
       `;
       const batchBar=document.getElementById("dataBatchBar");
       if(batchBar) batchBar.style.display="none";
+      const pagination=document.getElementById("dataPagination");
+      if(pagination) pagination.style.display="none";
       status.textContent="";
       return;
     }
@@ -2468,8 +2476,9 @@ async function loadDataCenterTasks(silent=false){
 
       if(sameIds && existingRows.length>0){
         patchDataCenterRows(items, existingRows, status);
-        status.textContent=`共 ${items.length} 条任务`;
+        status.textContent=`共 ${result.total ?? items.length} 条任务`;
         status.className="note success";
+        updateDataPagination(result.total ?? items.length);
         return;
       }
     }
@@ -2535,15 +2544,40 @@ async function loadDataCenterTasks(silent=false){
     }).join("");
 
     list.innerHTML=taskHtml;
-    status.textContent="";
+    status.textContent=`共 ${result.total ?? items.length} 条任务`;
+    status.className="note success";
 
     bindDataCenterRowEvents(list, items, status);
     bindDataCenterBatchBar(list);
+    updateDataPagination(result.total ?? items.length);
   }catch(error){
     list.innerHTML="";
     status.textContent="历史任务加载失败："+error.message;
     status.className="note error";
+    const pagination=document.getElementById("dataPagination");
+    if(pagination) pagination.style.display="none";
   }
+}
+
+function updateDataPagination(total){
+  const PAGE_SIZE=30;
+  const totalPages=Math.ceil(total/PAGE_SIZE);
+  const pagination=document.getElementById("dataPagination");
+  const pageInfo=document.getElementById("dataPageInfo");
+  const prevBtn=document.getElementById("dataPrevPage");
+  const nextBtn=document.getElementById("dataNextPage");
+
+  if(!pagination || !pageInfo || !prevBtn || !nextBtn) return;
+
+  if(totalPages<=1){
+    pagination.style.display="none";
+    return;
+  }
+
+  pagination.style.display="block";
+  pageInfo.textContent="第 "+dataCenterPageNum+" 页 / 共 "+totalPages+" 页";
+  prevBtn.disabled=dataCenterPageNum<=1;
+  nextBtn.disabled=dataCenterPageNum>=totalPages;
 }
 
 const _STATE_NAMES={
@@ -2995,7 +3029,27 @@ function initPages(){
   document.getElementById("dataRefreshBtn");
 
 if(dataRefreshButton){
-  dataRefreshButton.onclick=()=>loadDataCenterTasks();
+  dataRefreshButton.onclick=()=>{
+    dataCenterPageNum=1;
+    loadDataCenterTasks();
+  };
+}
+
+const dataPrevBtn=document.getElementById("dataPrevPage");
+const dataNextBtn=document.getElementById("dataNextPage");
+if(dataPrevBtn){
+  dataPrevBtn.onclick=()=>{
+    if(dataCenterPageNum>1){
+      dataCenterPageNum--;
+      loadDataCenterTasks();
+    }
+  };
+}
+if(dataNextBtn){
+  dataNextBtn.onclick=()=>{
+    dataCenterPageNum++;
+    loadDataCenterTasks();
+  };
 }
 
 const dataPauseButton=document.getElementById("dataPauseBtn");
