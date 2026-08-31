@@ -140,14 +140,6 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 .tag-option.selected{background:#2563eb;border-color:#2563eb;color:#fff}
 .tag-option.selected:hover{background:#1d4ed8;border-color:#1d4ed8}
 
-/* 折叠标签摘要 */
-.tag-summary{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;cursor:pointer;padding:2px 0;min-height:24px}
-.tag-summary:hover{opacity:.8}
-.tag-badge{display:inline-flex;align-items:center;padding:1px 8px;border-radius:10px;background:#e8f0fe;color:#2563eb;font-size:11px;line-height:1.6}
-.tag-more{display:inline-flex;align-items:center;padding:1px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-size:11px;line-height:1.6}
-.tag-collapse-btn{display:inline-flex;align-items:center;padding:2px 10px;border:1px solid #d1d5db;border-radius:12px;background:#fff;color:#6b7280;font-size:11px;cursor:pointer;transition:all .15s}
-.tag-collapse-btn:hover{background:#f3f4f6;border-color:#9ca3af}
-
 .data-task{
   display:flex;
   justify-content:space-between;
@@ -284,7 +276,7 @@ body.side-collapsed aside .law-subnav{display:none}
   margin:0 auto;
   padding:6px 0 10px;
   background:#eef2f5;flex-shrink:0;
-  display:flex;align-items:flex-end;gap:8px;
+  display:flex;flex-direction:column;gap:6px;
 }
 .chat-input-box{
   position:relative;flex:1;border-radius:16px;
@@ -316,7 +308,8 @@ body.side-collapsed aside .law-subnav{display:none}
   padding:4px 8px 8px;
 }
 .chat-rag-bar{
-  padding:6px 12px 0;display:flex;align-items:center;
+  padding:6px 12px;display:flex;flex-direction:column;gap:6px;
+  background:#f8f9fa;border-radius:12px;border:1px solid #e5e7eb;
 }
 .rag-toggle-label{
   display:inline-flex;align-items:center;gap:4px;
@@ -324,10 +317,15 @@ body.side-collapsed aside .law-subnav{display:none}
 }
 .rag-toggle-label input[type="checkbox"]{accent-color:#2563eb;margin:0;cursor:pointer;width:14px;height:14px}
 .chat-rag-tags{
-  padding:4px 12px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
-  border-bottom:1px solid #f0f0f0;
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
 }
 .rag-tag-label{font-size:12px;color:#888;flex-shrink:0}
+.tag-selector-scroll{
+  max-height:160px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+  padding:2px 0;
+}
+.tag-selector-scroll::-webkit-scrollbar{width:4px}
+.tag-selector-scroll::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
 .kb-upload-type-select{
   width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;
   font-size:14px;background:#fff;color:#333;cursor:pointer;
@@ -1045,82 +1043,31 @@ function knowledgeFileStatus(status){
 }
 
 // 通用多选标签选择器
-function createTagSelector(container, options, selectedValues, onChange, foldable){
+function createTagSelector(container, options, selectedValues, onChange){
   if(!container) return;
+  container.innerHTML="";
   var selected=new Set(selectedValues||[]);
-  var isFoldable=foldable && container.classList.contains("foldable");
-
-  function render(){
-    container.innerHTML="";
-
-    // 可折叠模式 && 已选中有值 → 显示摘要
-    if(isFoldable && selected.size>0){
-      var summary=document.createElement("div");
-      summary.className="tag-summary";
-      var arr=Array.from(selected);
-      var maxShow=3;
-      for(var i=0;i<Math.min(arr.length,maxShow);i++){
-        var badge=document.createElement("span");
-        badge.className="tag-badge";
-        badge.textContent=arr[i];
-        summary.appendChild(badge);
+  var frag=document.createDocumentFragment();
+  options.forEach(function(opt){
+    var btn=document.createElement("button");
+    btn.type="button";
+    btn.textContent=opt.label||opt.value||opt;
+    btn.dataset.value=opt.value||opt;
+    btn.className="tag-option"+(selected.has(opt.value||opt)?" selected":"");
+    btn.onclick=function(){
+      var val=this.dataset.value;
+      if(selected.has(val)){
+        selected.delete(val);
+        this.classList.remove("selected");
+      }else{
+        selected.add(val);
+        this.classList.add("selected");
       }
-      if(arr.length>maxShow){
-        var more=document.createElement("span");
-        more.className="tag-more";
-        more.textContent="+"+(arr.length-maxShow);
-        summary.appendChild(more);
-      }
-      summary.tabIndex=0;
-      summary.onclick=function(e){e.stopPropagation(); expand();};
-      container.appendChild(summary);
-      return;
-    }
-
-    // 展开模式
-    var frag=document.createDocumentFragment();
-    options.forEach(function(opt){
-      var btn=document.createElement("button");
-      btn.type="button";
-      btn.textContent=opt.label||opt.value||opt;
-      btn.dataset.value=opt.value||opt;
-      btn.className="tag-option"+(selected.has(opt.value||opt)?" selected":"");
-      btn.onclick=function(){
-        var val=this.dataset.value;
-        if(selected.has(val)){
-          selected.delete(val);
-          this.classList.remove("selected");
-        }else{
-          selected.add(val);
-          this.classList.add("selected");
-        }
-        if(onChange) onChange(Array.from(selected));
-        // 如果全取消了，折叠模式下自动收起
-        if(isFoldable && selected.size===0){
-          render();
-        }
-      };
-      frag.appendChild(btn);
-    });
-
-    // 折叠模式下添加"收起"按钮
-    if(isFoldable && selected.size>0){
-      var collapseBtn=document.createElement("button");
-      collapseBtn.type="button";
-      collapseBtn.className="tag-collapse-btn";
-      collapseBtn.textContent="收起";
-      collapseBtn.onclick=function(e){e.stopPropagation(); render();};
-      frag.appendChild(collapseBtn);
-    }
-
-    container.appendChild(frag);
-  }
-
-  function expand(){
-    render();
-  }
-
-  render();
+      if(onChange) onChange(Array.from(selected));
+    };
+    frag.appendChild(btn);
+  });
+  container.appendChild(frag);
 }
 
 async function loadKnowledgeFiles(){
@@ -1817,11 +1764,11 @@ function aiPage(){
           </label>
           <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
             <span class="rag-tag-label">类型</span>
-            <div class="tag-selector foldable" id="ragFileTypeTags"></div>
+            <div class="tag-selector" id="ragFileTypeTags"></div>
             <span class="rag-tag-label">省份</span>
-            <div class="tag-selector foldable" id="ragProvinceTags"></div>
+            <div class="tag-selector" id="ragProvinceTags"></div>
             <span class="rag-tag-label">城市</span>
-            <div class="tag-selector foldable" id="ragCityTags"></div>
+            <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
           </div>
         </div>
         <div class="chat-input-box">
@@ -3331,7 +3278,7 @@ loadDocuments();
       createTagSelector(ragProvinceEl,provinceOptions,[],function(vals){
         window.__ragProvinces=vals;
         updateRagCityTags(vals);
-      },true);
+      });
     }
 
     var ragCityEl=document.getElementById("ragCityTags");
@@ -3345,7 +3292,7 @@ loadDocuments();
       window.__ragFileTypes=[];
       createTagSelector(ragFileTypeEl,fileTypeOptions,[],function(vals){
         window.__ragFileTypes=vals;
-      },true);
+      });
     }
   }
 
@@ -3369,7 +3316,7 @@ loadDocuments();
     window.__ragCities=validCities;
     createTagSelector(el,cityOpts,validCities,function(vals){
       window.__ragCities=vals;
-    },true);
+    });
   }
 
   initAllTagSelectors();
