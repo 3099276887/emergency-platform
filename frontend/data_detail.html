@@ -29,6 +29,27 @@
   .detail-row .label{color:#888;min-width:5em;flex-shrink:0}
   .detail-row .value{color:#1a1a1a;flex:1}
   .detail-row .value pre{background:#f8f9fa;padding:12px;border-radius:6px;border:1px solid #e8e8e8;overflow-x:auto;font-size:13px;white-space:pre-wrap;word-wrap:break-word;max-height:400px;overflow-y:auto;margin:4px 0;line-height:1.5}
+
+  /* Word 风格渲染 */
+  .word-content{font-family:'Times New Roman','宋体',serif;font-size:12pt;line-height:1.8;color:#1a1a1a;padding:40px 48px;background:#fff;max-width:820px;margin:0 auto}
+  .word-content h1{font-size:22pt;font-weight:700;margin:20pt 0 10pt;text-align:center;padding-bottom:6pt;border-bottom:2px solid #333}
+  .word-content h2{font-size:16pt;font-weight:700;margin:16pt 0 8pt;color:#222}
+  .word-content h3{font-size:14pt;font-weight:700;margin:14pt 0 6pt;color:#333}
+  .word-content h4{font-size:12pt;font-weight:700;margin:12pt 0 4pt;color:#444}
+  .word-content p{margin:6pt 0;text-indent:2em;text-align:justify}
+  .word-content p.no-indent{text-indent:0}
+  .word-content ul,.word-content ol{margin:6pt 0 6pt 2em;padding:0}
+  .word-content li{margin:3pt 0}
+  .word-content table{border-collapse:collapse;margin:10pt auto;width:100%}
+  .word-content td,.word-content th{border:1px solid #888;padding:5pt 8pt;font-size:11pt;text-align:left;vertical-align:top}
+  .word-content th{background:#f0f0f0;font-weight:600;text-align:center}
+  .word-content strong{font-weight:700}
+  .word-content em{font-style:italic}
+  .word-content code{background:#f4f4f4;padding:1pt 4pt;border-radius:3pt;font-family:'Consolas','Courier New',monospace;font-size:10.5pt}
+  .word-content pre{background:#f8f8f8;border:1px solid #ddd;border-radius:4pt;padding:10pt 12pt;overflow-x:auto;font-family:'Consolas','Courier New',monospace;font-size:10.5pt;line-height:1.5;margin:8pt 0;white-space:pre-wrap;word-wrap:break-word}
+  .word-content blockquote{border-left:3pt solid #2563eb;margin:8pt 0;padding:4pt 12pt;color:#555;background:#f9fafb}
+  .word-content hr{border:none;border-top:1px solid #ccc;margin:16pt 0}
+  .word-content img{max-width:100%;height:auto;margin:8pt auto;display:block}
   .error{text-align:center;color:#c94135;padding:60px 0;font-size:15px}
   .error .detail{color:#999;font-size:13px;margin-top:8px}
   .status-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:500}
@@ -57,19 +78,19 @@
 
 <script>
 (function(){
-  const params=new URLSearchParams(location.search);
-  const taskId=params.get("id");
-  const title=params.get("title") || "任务详情";
+  var params=new URLSearchParams(location.search);
+  var taskId=params.get("id");
+  var title=params.get("title") || "任务详情";
 
-  const API_BASE="/api/v1";
+  var API_BASE="/api/v1";
 
-  const titleEl=document.getElementById("taskTitle");
-  const metaEl=document.getElementById("taskMeta");
-  const contentEl=document.getElementById("taskContent");
-  const downloadBtn=document.getElementById("downloadBtn");
+  var titleEl=document.getElementById("taskTitle");
+  var metaEl=document.getElementById("taskMeta");
+  var contentEl=document.getElementById("taskContent");
+  var downloadBtn=document.getElementById("downloadBtn");
 
   if(!taskId){
-    contentEl.innerHTML=`<div class="error">缺少任务参数<div class="detail">URL 中未提供 id 参数</div></div>`;
+    contentEl.innerHTML='<div class="error">缺少任务参数<div class="detail">URL 中未提供 id 参数</div></div>';
     return;
   }
 
@@ -92,6 +113,161 @@
     if(isNaN(d.getTime())) return ts;
     var pad=function(n){return n<10?"0"+n:""+n;};
     return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+  }
+
+  // 简单 markdown 转 HTML
+  function mdToHtml(text){
+    if(typeof text!=="string" || !text) return "";
+    // 转义 HTML 特殊字符（代码块/行内代码除外）
+    var lines=text.split("\n");
+    var inCodeBlock=false;
+    var codeLang="";
+    var html="";
+    var i=0;
+
+    function escape(t){
+      return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    function renderInline(str){
+      // 先处理代码标记，避免内部被其他规则干扰
+      var parts=[];
+      var codeRe=/`([^`]+)`/g;
+      var lastIdx=0;
+      var m;
+      while((m=codeRe.exec(str))!==null){
+        if(m.index>lastIdx) parts.push(escape(str.slice(lastIdx,m.index)));
+        parts.push('<code>'+escape(m[1])+'</code>');
+        lastIdx=m.index+m[0].length;
+      }
+      if(lastIdx<str.length) parts.push(escape(str.slice(lastIdx)));
+      var s=parts.join("");
+
+      // 粗体 **text**
+      s=s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+      // 斜体 *text*
+      s=s.replace(/\*(.+?)\*/g,"<em>$1</em>");
+      // 删除线 ~~text~~
+      s=s.replace(/~~(.+?)~~/g,"<del>$1</del>");
+      // 链接 [text](url)
+      s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+      return s;
+    }
+
+    while(i<lines.length){
+      var line=lines[i];
+
+      // 代码块
+      if(/^```/.test(line)){
+        if(inCodeBlock){
+          html+='</pre>';
+          inCodeBlock=false;
+          codeLang="";
+        }else{
+          codeLang=line.slice(3).trim();
+          html+='<pre>';
+          inCodeBlock=true;
+        }
+        i++;
+        continue;
+      }
+      if(inCodeBlock){
+        html+=escape(line)+"\n";
+        i++;
+        continue;
+      }
+
+      // 空行
+      if(/^\s*$/.test(line)){
+        // 检查是否在列表中间，不在列表中就加段落分隔
+        html+='</p><p class="no-indent">';
+        i++;
+        continue;
+      }
+
+      // 分隔线
+      if(/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)){
+        html+='<hr>';
+        i++;
+        continue;
+      }
+
+      // 标题
+      var hMatch=line.match(/^(#{1,4})\s+(.+)$/);
+      if(hMatch){
+        var hLevel=hMatch[1].length;
+        var hText=renderInline(hMatch[2].trim());
+        html+='<h'+hLevel+'>'+hText+'</h'+hLevel+'>';
+        i++;
+        continue;
+      }
+
+      // 无序列表
+      if(/^[\s]*[-*+]\s+/.test(line)){
+        html+='<ul>';
+        while(i<lines.length && /^[\s]*[-*+]\s+/.test(lines[i])){
+          var liText=lines[i].replace(/^[\s]*[-*+]\s+/,"");
+          html+='<li>'+renderInline(liText)+'</li>';
+          i++;
+        }
+        html+='</ul>';
+        continue;
+      }
+
+      // 有序列表
+      if(/^[\s]*\d+\.\s+/.test(line)){
+        html+='<ol>';
+        while(i<lines.length && /^[\s]*\d+\.\s+/.test(lines[i])){
+          var liText2=lines[i].replace(/^[\s]*\d+\.\s+/,"");
+          html+='<li>'+renderInline(liText2)+'</li>';
+          i++;
+        }
+        html+='</ol>';
+        continue;
+      }
+
+      // 表格
+      if(/^\|.+/.test(line) && lines[i+1] && /^\|[-:\s|]+\|/.test(lines[i+1])){
+        html+='<table><thead><tr>';
+        var headers=line.split("|").filter(function(c){return c.trim()!==""});
+        for(var hi=0;hi<headers.length;hi++){
+          html+='<th>'+renderInline(headers[hi].trim())+'</th>';
+        }
+        html+='</tr></thead><tbody>';
+        i+=2; // 跳过表头和分隔行
+        while(i<lines.length && /^\|.+/.test(lines[i])){
+          html+='<tr>';
+          var cells=lines[i].split("|").filter(function(c){return c.trim()!==""});
+          for(var ci=0;ci<cells.length;ci++){
+            html+='<td>'+renderInline(cells[ci].trim())+'</td>';
+          }
+          html+='</tr>';
+          i++;
+        }
+        html+='</tbody></table>';
+        continue;
+      }
+
+      // 引用
+      if(/^>\s/.test(line)){
+        html+='<blockquote>';
+        while(i<lines.length && /^>\s/.test(lines[i])){
+          html+=renderInline(lines[i].replace(/^>\s/,""))+"<br>";
+          i++;
+        }
+        html+='</blockquote>';
+        continue;
+      }
+
+      // 普通段落
+      html+=renderInline(line);
+      i++;
+    }
+
+    // 闭合代码块
+    if(inCodeBlock) html+='</pre>';
+
+    return '<div class="word-content">'+html+'</div>';
   }
 
   fetch(API_BASE+"/documents/"+encodeURIComponent(taskId),{headers:{"Accept":"application/json"}})
@@ -128,10 +304,10 @@
         html+='</div>';
       }
 
-      // 生成结果（如果有）
+      // 生成结果（如果有）— Word 风格渲染
       if(detail.report_content){
         html+='<div class="detail-section"><h3>生成结果</h3>';
-        html+='<div class="detail-row"><span class="value"><pre>'+escapeHtml(detail.report_content)+'</pre></span></div>';
+        html+='<div class="detail-row"><span class="value">'+mdToHtml(detail.report_content)+'</span></div>';
         html+='</div>';
       }
 
