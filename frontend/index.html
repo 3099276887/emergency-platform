@@ -140,6 +140,14 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 .tag-option.selected{background:#2563eb;border-color:#2563eb;color:#fff}
 .tag-option.selected:hover{background:#1d4ed8;border-color:#1d4ed8}
 
+/* 折叠标签摘要 */
+.tag-summary{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;cursor:pointer;padding:2px 0;min-height:24px}
+.tag-summary:hover{opacity:.8}
+.tag-badge{display:inline-flex;align-items:center;padding:1px 8px;border-radius:10px;background:#e8f0fe;color:#2563eb;font-size:11px;line-height:1.6}
+.tag-more{display:inline-flex;align-items:center;padding:1px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-size:11px;line-height:1.6}
+.tag-collapse-btn{display:inline-flex;align-items:center;padding:2px 10px;border:1px solid #d1d5db;border-radius:12px;background:#fff;color:#6b7280;font-size:11px;cursor:pointer;transition:all .15s}
+.tag-collapse-btn:hover{background:#f3f4f6;border-color:#9ca3af}
+
 .data-task{
   display:flex;
   justify-content:space-between;
@@ -307,11 +315,19 @@ body.side-collapsed aside .law-subnav{display:none}
   display:flex;align-items:center;justify-content:space-between;
   padding:4px 8px 8px;
 }
-.rag-label{
-  display:flex;align-items:center;gap:4px;
+.chat-rag-bar{
+  padding:6px 12px 0;display:flex;align-items:center;
+}
+.rag-toggle-label{
+  display:inline-flex;align-items:center;gap:4px;
   color:#6b7280;font-size:13px;cursor:pointer;user-select:none;
 }
-.rag-label input[type="checkbox"]{accent-color:#6b7280;margin:0;cursor:pointer}
+.rag-toggle-label input[type="checkbox"]{accent-color:#2563eb;margin:0;cursor:pointer;width:14px;height:14px}
+.chat-rag-tags{
+  padding:4px 12px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
+  border-bottom:1px solid #f0f0f0;
+}
+.rag-tag-label{font-size:12px;color:#888;flex-shrink:0}
 .chat-input-actions{
   display:flex;align-items:center;gap:4px;
 }
@@ -778,31 +794,21 @@ function knowledgePage(){
         <div class="tag-selector" id="kbUploadFileTypeTags"></div>
       </div>
 
-      <div class="field">
-        <label>省份</label>
-        <div class="tag-selector" id="kbUploadProvinceTags"></div>
-      </div>
-
-      <div class="field">
-        <label>城市</label>
-        <div class="tag-selector" id="kbUploadCityTags"></div>
-      </div>
-
       <button id="kbUploadBtn" class="btn">上传并建立索引</button>
       <p id="kbStatus" class="note"></p>
 
       <div class="kb-filter">
-        <input id="kbKeywordInput" type="text" placeholder="按文件名关键字搜索">
-        <div class="tag-selector" id="kbFilterFileTypeTags"></div>
+        <input id="kbKeywordInput" type="text" placeholder="文件名关键字">
+        <input id="kbFilterFileType" type="text" placeholder="文件类型（如：国家法律）" style="width:130px">
+        <input id="kbFilterProvince" type="text" placeholder="省份" style="width:80px">
+        <input id="kbFilterCity" type="text" placeholder="城市" style="width:80px">
         <select id="kbStatusFilter">
           <option value="">全部状态</option>
           <option value="building">建立中</option>
           <option value="ready">就绪</option>
           <option value="failed">失败</option>
         </select>
-        <div class="tag-selector" id="kbFilterProvinceTags"></div>
-        <div class="tag-selector" id="kbFilterCityTags"></div>
-        <button id="kbSearchBtn" class="btn-secondary">查询</button>
+        <button id="kbSearchBtn" class="btn-secondary">搜索</button>
       </div>
 
       <div class="kb-batch-bar kb-batch-bar-standalone" id="kbBatchBar" style="display:none">
@@ -1030,31 +1036,82 @@ function knowledgeFileStatus(status){
 }
 
 // 通用多选标签选择器
-function createTagSelector(container, options, selectedValues, onChange){
+function createTagSelector(container, options, selectedValues, onChange, foldable){
   if(!container) return;
-  container.innerHTML="";
   var selected=new Set(selectedValues||[]);
-  var frag=document.createDocumentFragment();
-  options.forEach(function(opt){
-    var btn=document.createElement("button");
-    btn.type="button";
-    btn.textContent=opt.label||opt.value||opt;
-    btn.dataset.value=opt.value||opt;
-    btn.className="tag-option"+(selected.has(opt.value||opt)?" selected":"");
-    btn.onclick=function(){
-      var val=this.dataset.value;
-      if(selected.has(val)){
-        selected.delete(val);
-        this.classList.remove("selected");
-      }else{
-        selected.add(val);
-        this.classList.add("selected");
+  var isFoldable=foldable && container.classList.contains("foldable");
+
+  function render(){
+    container.innerHTML="";
+
+    // 可折叠模式 && 已选中有值 → 显示摘要
+    if(isFoldable && selected.size>0){
+      var summary=document.createElement("div");
+      summary.className="tag-summary";
+      var arr=Array.from(selected);
+      var maxShow=3;
+      for(var i=0;i<Math.min(arr.length,maxShow);i++){
+        var badge=document.createElement("span");
+        badge.className="tag-badge";
+        badge.textContent=arr[i];
+        summary.appendChild(badge);
       }
-      if(onChange) onChange(Array.from(selected));
-    };
-    frag.appendChild(btn);
-  });
-  container.appendChild(frag);
+      if(arr.length>maxShow){
+        var more=document.createElement("span");
+        more.className="tag-more";
+        more.textContent="+"+(arr.length-maxShow);
+        summary.appendChild(more);
+      }
+      summary.tabIndex=0;
+      summary.onclick=function(e){e.stopPropagation(); expand();};
+      container.appendChild(summary);
+      return;
+    }
+
+    // 展开模式
+    var frag=document.createDocumentFragment();
+    options.forEach(function(opt){
+      var btn=document.createElement("button");
+      btn.type="button";
+      btn.textContent=opt.label||opt.value||opt;
+      btn.dataset.value=opt.value||opt;
+      btn.className="tag-option"+(selected.has(opt.value||opt)?" selected":"");
+      btn.onclick=function(){
+        var val=this.dataset.value;
+        if(selected.has(val)){
+          selected.delete(val);
+          this.classList.remove("selected");
+        }else{
+          selected.add(val);
+          this.classList.add("selected");
+        }
+        if(onChange) onChange(Array.from(selected));
+        if(isFoldable && selected.size>0){
+          // 延迟折叠，让用户看到变化
+          setTimeout(render,300);
+        }
+      };
+      frag.appendChild(btn);
+    });
+
+    // 折叠模式下添加"收起"按钮
+    if(isFoldable && selected.size>0){
+      var collapseBtn=document.createElement("button");
+      collapseBtn.type="button";
+      collapseBtn.className="tag-collapse-btn";
+      collapseBtn.textContent="收起";
+      collapseBtn.onclick=function(e){e.stopPropagation(); render();};
+      frag.appendChild(collapseBtn);
+    }
+
+    container.appendChild(frag);
+  }
+
+  function expand(){
+    render();
+  }
+
+  render();
 }
 
 async function loadKnowledgeFiles(){
@@ -1071,10 +1128,14 @@ async function loadKnowledgeFiles(){
   const keyword=keywordInput ? keywordInput.value.trim() : "";
   const statusValue=statusInput ? statusInput.value : "";
 
-  // 从标签选择器获取筛选值
-  var filterFileTypes=window.__kbFilterFileTypes || [];
-  var filterProvinces=window.__kbFilterProvinces || [];
-  var filterCities=window.__kbFilterCities || [];
+  // 从文本框获取筛选值
+  var filterFileTypeInput=document.getElementById("kbFilterFileType");
+  var filterProvinceInput=document.getElementById("kbFilterProvince");
+  var filterCityInput=document.getElementById("kbFilterCity");
+
+  var filterFileTypes=filterFileTypeInput ? filterFileTypeInput.value.trim().split(/[,，\s]+/).filter(Boolean) : [];
+  var filterProvinces=filterProvinceInput ? filterProvinceInput.value.trim().split(/[,，\s]+/).filter(Boolean) : [];
+  var filterCities=filterCityInput ? filterCityInput.value.trim().split(/[,，\s]+/).filter(Boolean) : [];
 
   const params=new URLSearchParams();
 
@@ -1224,6 +1285,9 @@ async function loadKnowledgeFiles(){
 function resetKnowledgeFilters(){
   const keyword=document.getElementById("kbKeywordInput");
   const status=document.getElementById("kbStatusFilter");
+  const fileTypeInput=document.getElementById("kbFilterFileType");
+  const provinceInput=document.getElementById("kbFilterProvince");
+  const cityInput=document.getElementById("kbFilterCity");
 
   if(keyword){
     keyword.value="";
@@ -1233,11 +1297,17 @@ function resetKnowledgeFilters(){
     status.value="";
   }
 
-  // 重置筛选标签选择器
-  window.__kbFilterFileTypes=[];
-  window.__kbFilterProvinces=[];
-  window.__kbFilterCities=[];
-  if(window.__recreateFilterTags) window.__recreateFilterTags();
+  if(fileTypeInput){
+    fileTypeInput.value="";
+  }
+
+  if(provinceInput){
+    provinceInput.value="";
+  }
+
+  if(cityInput){
+    cityInput.value="";
+  }
 
   loadKnowledgeFiles();
 }
@@ -1275,10 +1345,8 @@ async function uploadKnowledgeFile(){
     return;
   }
 
-  // 从标签选择器获取值
+  // 从标签选择器获取文件类型
   var uploadFileTypes=window.__kbUploadFileTypes || [];
-  var uploadProvinces=window.__kbUploadProvinces || [];
-  var uploadCities=window.__kbUploadCities || [];
 
   if(uploadFileTypes.length===0){
     status.textContent="请选择文件类型才能上传";
@@ -1319,12 +1387,12 @@ async function uploadKnowledgeFile(){
       // 文件类型数组
       uploadFileTypes.forEach(function(v){formData.append("file_type",v);});
 
-      // 省份/城市数组
-      if(uploadProvinces.length>0){
-        uploadProvinces.forEach(function(v){formData.append("provinces",v);});
-      }
-      if(uploadCities.length>0){
-        uploadCities.forEach(function(v){formData.append("cities",v);});
+      // 每个文件自动从文件名识别地区
+      var detected=autoDetectRegion(file.name);
+      if(detected){
+        var parts=detected.split("-");
+        formData.append("provinces",parts[0]);
+        if(parts[1]) formData.append("cities",parts[1]);
       }
 
       try{
@@ -1734,21 +1802,25 @@ function aiPage(){
 
       <div class="chat-input">
         <div class="chat-input-box">
+          <div class="chat-rag-bar">
+            <label class="rag-toggle-label">
+              <input type="checkbox" id="ragToggle" /> RAG
+            </label>
+          </div>
+          <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
+            <span class="rag-tag-label">类型</span>
+            <div class="tag-selector foldable" id="ragFileTypeTags"></div>
+            <span class="rag-tag-label">省份</span>
+            <div class="tag-selector foldable" id="ragProvinceTags"></div>
+            <span class="rag-tag-label">城市</span>
+            <div class="tag-selector foldable" id="ragCityTags"></div>
+          </div>
           <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
           <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
           <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
             <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           </button>
           <div class="chat-input-footer">
-            <label class="rag-label">
-              <input type="checkbox" id="ragToggle" />RAG
-              <span style="font-size:12px;color:#666;margin:0 4px">省份</span>
-              <div class="tag-selector" id="ragProvinceTags" style="display:inline-flex;vertical-align:middle"></div>
-              <span style="font-size:12px;color:#666;margin:0 4px">城市</span>
-              <div class="tag-selector" id="ragCityTags" style="display:inline-flex;vertical-align:middle"></div>
-              <span style="font-size:12px;color:#666;margin:0 4px">类型</span>
-              <div class="tag-selector" id="ragFileTypeTags" style="display:inline-flex;vertical-align:middle"></div>
-            </label>
             <div class="chat-input-actions">
               <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
                 <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -3248,73 +3320,17 @@ loadDocuments();
       window.__kbUploadFileTypes=[];
       createTagSelector(uploadFileTypeEl,fileTypeOptions,[],function(vals){
         window.__kbUploadFileTypes=vals;
-      });
+      },true);
     }
 
-    var uploadProvinceEl=document.getElementById("kbUploadProvinceTags");
-    if(uploadProvinceEl){
-      window.__kbUploadProvinces=[];
-      createTagSelector(uploadProvinceEl,provinceOptions,[],function(vals){
-        window.__kbUploadProvinces=vals;
-        // 更新城市标签
-        updateUploadCityTags(vals);
-      });
-    }
-
-    var uploadCityEl=document.getElementById("kbUploadCityTags");
-    if(uploadCityEl){
-      window.__kbUploadCities=[];
-      window.__kbUploadCityEl=uploadCityEl;
-    }
-
-    // 筛选栏标签
-    var filterFileTypeEl=document.getElementById("kbFilterFileTypeTags");
-    if(filterFileTypeEl){
-      window.__kbFilterFileTypes=[];
-      createTagSelector(filterFileTypeEl,fileTypeOptions,[],function(vals){
-        window.__kbFilterFileTypes=vals;
-      });
-    }
-
-    var filterProvinceEl=document.getElementById("kbFilterProvinceTags");
-    if(filterProvinceEl){
-      window.__kbFilterProvinces=[];
-      createTagSelector(filterProvinceEl,provinceOptions,[],function(vals){
-        window.__kbFilterProvinces=vals;
-        updateFilterCityTags(vals);
-      });
-    }
-
-    var filterCityEl=document.getElementById("kbFilterCityTags");
-    if(filterCityEl){
-      window.__kbFilterCities=[];
-      window.__kbFilterCityEl=filterCityEl;
-    }
-
-    // 筛选栏重置函数
-    window.__recreateFilterTags=function(){
-      createTagSelector(filterFileTypeEl,fileTypeOptions,window.__kbFilterFileTypes||[],function(vals){
-        window.__kbFilterFileTypes=vals;
-      });
-      createTagSelector(filterProvinceEl,provinceOptions,window.__kbFilterProvinces||[],function(vals){
-        window.__kbFilterProvinces=vals;
-        updateFilterCityTags(vals);
-      });
-      var curCities=window.__kbFilterCities||[];
-      var cityOpts=getCityOptions(window.__kbFilterProvinces||[]);
-      createTagSelector(filterCityEl,cityOpts,curCities,function(vals){
-        window.__kbFilterCities=vals;
-      });
-    };
-
-    // RAG 标签
+    // RAG 标签（可折叠）
     var ragProvinceEl=document.getElementById("ragProvinceTags");
     if(ragProvinceEl){
       window.__ragProvinces=[];
       createTagSelector(ragProvinceEl,provinceOptions,[],function(vals){
         window.__ragProvinces=vals;
         updateRagCityTags(vals);
-      });
+      },true);
     }
 
     var ragCityEl=document.getElementById("ragCityTags");
@@ -3328,7 +3344,7 @@ loadDocuments();
       window.__ragFileTypes=[];
       createTagSelector(ragFileTypeEl,fileTypeOptions,[],function(vals){
         window.__ragFileTypes=vals;
-      });
+      },true);
     }
   }
 
@@ -3339,35 +3355,6 @@ loadDocuments();
       cities.forEach(function(c){citySet.add(c);});
     });
     return Array.from(citySet).map(function(c){return {label:c,value:c};});
-  }
-
-  function updateUploadCityTags(selectedProvinces){
-    var el=window.__kbUploadCityEl;
-    if(!el) return;
-    var cityOpts=getCityOptions(selectedProvinces);
-    var curCities=window.__kbUploadCities||[];
-    // 过滤掉已选但不再可用的城市
-    var validCities=curCities.filter(function(c){
-      return cityOpts.some(function(o){return o.value===c;});
-    });
-    window.__kbUploadCities=validCities;
-    createTagSelector(el,cityOpts,validCities,function(vals){
-      window.__kbUploadCities=vals;
-    });
-  }
-
-  function updateFilterCityTags(selectedProvinces){
-    var el=window.__kbFilterCityEl;
-    if(!el) return;
-    var cityOpts=getCityOptions(selectedProvinces);
-    var curCities=window.__kbFilterCities||[];
-    var validCities=curCities.filter(function(c){
-      return cityOpts.some(function(o){return o.value===c;});
-    });
-    window.__kbFilterCities=validCities;
-    createTagSelector(el,cityOpts,validCities,function(vals){
-      window.__kbFilterCities=vals;
-    });
   }
 
   function updateRagCityTags(selectedProvinces){
@@ -3381,7 +3368,7 @@ loadDocuments();
     window.__ragCities=validCities;
     createTagSelector(el,cityOpts,validCities,function(vals){
       window.__ragCities=vals;
-    });
+    },true);
   }
 
   initAllTagSelectors();
@@ -3391,7 +3378,12 @@ loadDocuments();
     ragToggle.checked=enableRAG;
     ragToggle.onchange=()=>{
       enableRAG=ragToggle.checked;
+      var panel=document.getElementById("ragTagsPanel");
+      if(panel) panel.style.display=enableRAG?"":"none";
     };
+    // 初始状态
+    var panel=document.getElementById("ragTagsPanel");
+    if(panel) panel.style.display=enableRAG?"":"none";
   }
 
   const clearButton=document.getElementById("clearChat");
