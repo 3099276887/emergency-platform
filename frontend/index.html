@@ -358,6 +358,8 @@ body.side-collapsed aside .law-subnav{display:none}
   display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
 }
 .rag-tag-label{font-size:12px;color:#888;flex-shrink:0}
+.doc-tag-row{display:flex;align-items:center;gap:8px;margin:4px 0}
+.doc-tag-row .rag-tag-label{min-width:3em}
 .tag-selector-scroll{
   max-height:160px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:4px;align-items:center;
   padding:2px 0;
@@ -650,8 +652,24 @@ body.side-collapsed aside .law-subnav{display:none}
       </div>
 
       <div class="field">
-        <label for="docRegionInput">适用地区（可选，限定地方法规检索范围）</label>
-        <input id="docRegionInput" type="text" placeholder="例如：上海、北京、安徽" style="max-width:300px">
+        <label>适用地区（可选，限定检索范围）</label>
+        <div class="doc-tag-row">
+          <span class="rag-tag-label">类型</span>
+          <div class="tag-selector" id="docFileTypeTags">
+            <button type="button" data-value="暂定" class="tag-option">暂定</button>
+            <button type="button" data-value="国家法律" class="tag-option">国家法律</button>
+            <button type="button" data-value="行政法规" class="tag-option">行政法规</button>
+            <button type="button" data-value="地方法规" class="tag-option">地方法规</button>
+          </div>
+        </div>
+        <div class="doc-tag-row">
+          <span class="rag-tag-label">省份</span>
+          <div class="tag-selector" id="docProvinceTags"></div>
+        </div>
+        <div class="doc-tag-row">
+          <span class="rag-tag-label">城市</span>
+          <div class="tag-selector tag-selector-scroll" id="docCityTags"></div>
+        </div>
       </div>
 
       <button id="processBtn" class="btn">
@@ -1953,13 +1971,24 @@ function documentsPage(){
       </div>
 
       <div class="field">
-        <label for="docRegionInput">适用地区（可选，限定地方法规检索范围）</label>
-        <input
-          id="docRegionInput"
-          type="text"
-          placeholder="例如：上海、北京、安徽"
-          style="max-width:300px"
-        >
+        <label>适用地区（可选，限定检索范围）</label>
+        <div class="doc-tag-row">
+          <span class="rag-tag-label">类型</span>
+          <div class="tag-selector" id="docFileTypeTags">
+            <button type="button" data-value="暂定" class="tag-option">暂定</button>
+            <button type="button" data-value="国家法律" class="tag-option">国家法律</button>
+            <button type="button" data-value="行政法规" class="tag-option">行政法规</button>
+            <button type="button" data-value="地方法规" class="tag-option">地方法规</button>
+          </div>
+        </div>
+        <div class="doc-tag-row">
+          <span class="rag-tag-label">省份</span>
+          <div class="tag-selector" id="docProvinceTags"></div>
+        </div>
+        <div class="doc-tag-row">
+          <span class="rag-tag-label">城市</span>
+          <div class="tag-selector tag-selector-scroll" id="docCityTags"></div>
+        </div>
       </div>
 
       <button
@@ -2340,7 +2369,7 @@ async function startAiStream(continuing){
           enable_rag: enableRAG,
           provinces: enableRAG ? (window.__ragProvinces||[]) : [],
           cities: enableRAG ? (window.__ragCities||[]) : [],
-          file_type: enableRAG ? (window.__ragFileTypes||[]) : []
+          file_types: enableRAG ? (window.__ragFileTypes||[]) : []
         })
       }
     );
@@ -2462,8 +2491,9 @@ async function processDocument(){
   const originalText=document.getElementById("documentContent").value.trim();
   const requirements=document.getElementById("instruction").value.trim();
   const outputFilename=document.getElementById("fileName").value.trim();
-  const docRegionInput=document.getElementById("docRegionInput");
-  const region=docRegionInput ? docRegionInput.value.trim() : "";
+  const docProvinces=window.__docProvinces||[];
+  const docCities=window.__docCities||[];
+  const docFileTypes=window.__docFileTypes||[];
 
   const button=document.getElementById("processBtn");
   const status=document.getElementById("documentStatus");
@@ -2497,7 +2527,9 @@ async function processDocument(){
         original_text:originalText,
         requirements:requirements,
         output_filename:outputFilename,
-        ...(region ? {region} : {})
+        provinces:docProvinces,
+        cities:docCities,
+        file_types:docFileTypes
       })
     });
 
@@ -3514,6 +3546,8 @@ function initKbFilterTabs(){
 }
 initKbFilterTabs();
 
+  initAllTagSelectors();
+
 loadTaskTypes();
 loadDocuments();
 
@@ -3611,6 +3645,28 @@ loadDocuments();
         window.__ragFileTypes=vals;
       });
     }
+
+    // 文档处理标签
+    var docProvinceEl=document.getElementById("docProvinceTags");
+    if(docProvinceEl){
+      window.__docProvinces=[];
+      createTagSelector(docProvinceEl,provinceOptions,[],function(vals){
+        window.__docProvinces=vals;
+        updateDocCityTags(vals);
+      });
+    }
+    var docCityEl=document.getElementById("docCityTags");
+    if(docCityEl){
+      window.__docCities=[];
+      window.__docCityEl=docCityEl;
+    }
+    var docFileTypeEl=document.getElementById("docFileTypeTags");
+    if(docFileTypeEl){
+      window.__docFileTypes=[];
+      createTagSelector(docFileTypeEl,fileTypeOptions,[],function(vals){
+        window.__docFileTypes=vals;
+      });
+    }
   }
 
   function getCityOptions(selectedProvinces){
@@ -3644,7 +3700,26 @@ loadDocuments();
     });
   }
 
-  initAllTagSelectors();
+  function updateDocCityTags(selectedProvinces){
+    var el=window.__docCityEl;
+    if(!el) return;
+    var cityOpts=getCityOptions(selectedProvinces);
+    var curCities=window.__docCities||[];
+    var validCities=curCities.filter(function(c){
+      return cityOpts.some(function(o){return o.value===c;});
+    });
+    window.__docCities=validCities;
+    var autoCities=selectedProvinces.filter(function(p){
+      return cityOpts.some(function(o){return o.value===p;});
+    });
+    autoCities.forEach(function(c){
+      if(validCities.indexOf(c)===-1) validCities.push(c);
+    });
+    window.__docCities=validCities;
+    createTagSelector(el,cityOpts,validCities,function(vals){
+      window.__docCities=vals;
+    });
+  }
 
   const ragToggle=document.getElementById("ragToggle");
   const ragEditBtn=document.getElementById("ragEditBtn");
