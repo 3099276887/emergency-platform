@@ -133,6 +133,13 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
   flex:0 0 auto;
 }
 
+/* 多选标签选择器 */
+.tag-selector{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+.tag-option{display:inline-flex;align-items:center;padding:4px 12px;border:1px solid #cbd7de;border-radius:14px;background:#fff;color:#405664;font-size:12px;cursor:pointer;transition:all .15s;user-select:none}
+.tag-option:hover{border-color:#2563eb;color:#2563eb}
+.tag-option.selected{background:#2563eb;border-color:#2563eb;color:#fff}
+.tag-option.selected:hover{background:#1d4ed8;border-color:#1d4ed8}
+
 .data-task{
   display:flex;
   justify-content:space-between;
@@ -305,14 +312,6 @@ body.side-collapsed aside .law-subnav{display:none}
   color:#6b7280;font-size:13px;cursor:pointer;user-select:none;
 }
 .rag-label input[type="checkbox"]{accent-color:#6b7280;margin:0;cursor:pointer}
-.rag-province-select,
-.rag-city-select{
-  font-size:12px;padding:2px 6px;border:1px solid #d1d5db;border-radius:4px;
-  color:#555;background:#fff;cursor:pointer;outline:none;margin-left:4px;
-  max-width:110px;display:none;
-}
-.rag-province-select:enabled:focus,
-.rag-city-select:enabled:focus{border-color:#9ca3af}
 .chat-input-actions{
   display:flex;align-items:center;gap:4px;
 }
@@ -775,19 +774,18 @@ function knowledgePage(){
       </div>
 
       <div class="field">
-        <label for="kbFileTypeInput">文件类型 <span style="color:#c94135">*</span></label>
-        <select id="kbFileTypeInput">
-          <option value="" disabled selected>请选择文件类型</option>
-          <option value="暂定">暂定</option>
-          <option value="国家法律">国家法律</option>
-          <option value="行政法规">行政法规</option>
-          <option value="地方法规">地方法规</option>
-        </select>
+        <label>文件类型 <span style="color:#c94135">*</span></label>
+        <div class="tag-selector" id="kbUploadFileTypeTags"></div>
       </div>
 
-      <div class="field" id="kbRegionField" style="display:none">
-        <label for="kbRegionInput">所属地区</label>
-        <span id="kbRegionAutoTip" style="color:#888;font-size:12px">上传时自动从文件名识别</span>
+      <div class="field">
+        <label>省份</label>
+        <div class="tag-selector" id="kbUploadProvinceTags"></div>
+      </div>
+
+      <div class="field">
+        <label>城市</label>
+        <div class="tag-selector" id="kbUploadCityTags"></div>
       </div>
 
       <button id="kbUploadBtn" class="btn">上传并建立索引</button>
@@ -795,20 +793,15 @@ function knowledgePage(){
 
       <div class="kb-filter">
         <input id="kbKeywordInput" type="text" placeholder="按文件名关键字搜索">
-        <select id="kbTypeFilterInput">
-          <option value="">全部类型</option>
-          <option value="暂定">暂定</option>
-          <option value="国家法律">国家法律</option>
-          <option value="行政法规">行政法规</option>
-          <option value="地方法规">地方法规</option>
-        </select>
+        <div class="tag-selector" id="kbFilterFileTypeTags"></div>
         <select id="kbStatusFilter">
           <option value="">全部状态</option>
           <option value="building">建立中</option>
           <option value="ready">就绪</option>
           <option value="failed">失败</option>
         </select>
-        <input id="kbRegionFilter" type="text" placeholder="按地区筛选">
+        <div class="tag-selector" id="kbFilterProvinceTags"></div>
+        <div class="tag-selector" id="kbFilterCityTags"></div>
         <button id="kbSearchBtn" class="btn-secondary">查询</button>
       </div>
 
@@ -1036,6 +1029,34 @@ function knowledgeFileStatus(status){
   }[status] || status || "未知";
 }
 
+// 通用多选标签选择器
+function createTagSelector(container, options, selectedValues, onChange){
+  if(!container) return;
+  container.innerHTML="";
+  var selected=new Set(selectedValues||[]);
+  var frag=document.createDocumentFragment();
+  options.forEach(function(opt){
+    var btn=document.createElement("button");
+    btn.type="button";
+    btn.textContent=opt.label||opt.value||opt;
+    btn.dataset.value=opt.value||opt;
+    btn.className="tag-option"+(selected.has(opt.value||opt)?" selected":"");
+    btn.onclick=function(){
+      var val=this.dataset.value;
+      if(selected.has(val)){
+        selected.delete(val);
+        this.classList.remove("selected");
+      }else{
+        selected.add(val);
+        this.classList.add("selected");
+      }
+      if(onChange) onChange(Array.from(selected));
+    };
+    frag.appendChild(btn);
+  });
+  container.appendChild(frag);
+}
+
 async function loadKnowledgeFiles(){
   const list=document.getElementById("kbFileList");
   const status=document.getElementById("kbStatus");
@@ -1045,14 +1066,15 @@ async function loadKnowledgeFiles(){
   }
 
   const keywordInput=document.getElementById("kbKeywordInput");
-  const typeInput=document.getElementById("kbTypeFilterInput");
   const statusInput=document.getElementById("kbStatusFilter");
-  const regionInput=document.getElementById("kbRegionFilter");
 
   const keyword=keywordInput ? keywordInput.value.trim() : "";
-  const fileType=typeInput ? typeInput.value.trim() : "";
   const statusValue=statusInput ? statusInput.value : "";
-  const regionValue=regionInput ? regionInput.value.trim() : "";
+
+  // 从标签选择器获取筛选值
+  var filterFileTypes=window.__kbFilterFileTypes || [];
+  var filterProvinces=window.__kbFilterProvinces || [];
+  var filterCities=window.__kbFilterCities || [];
 
   const params=new URLSearchParams();
 
@@ -1060,16 +1082,12 @@ async function loadKnowledgeFiles(){
     params.set("keyword",keyword);
   }
 
-  if(fileType){
-    params.set("file_type",fileType);
-  }
+  filterFileTypes.forEach(function(v){params.append("file_type",v);});
+  filterProvinces.forEach(function(v){params.append("provinces",v);});
+  filterCities.forEach(function(v){params.append("cities",v);});
 
   if(statusValue){
     params.set("status",statusValue);
-  }
-
-  if(regionValue){
-    params.set("region",regionValue);
   }
 
   const query=params.toString();
@@ -1111,8 +1129,13 @@ async function loadKnowledgeFiles(){
           <strong>${escapeHtml(file.filename || "未命名文件")}</strong>
           <span>类型：${escapeHtml(file.file_type || "—")}</span>
           ${
-            file.region
-              ? `<span>地区：${escapeHtml(file.region)}</span>`
+            file.provinces && file.provinces.length>0
+              ? `<span>省份：${escapeHtml(Array.isArray(file.provinces)?file.provinces.join("、"):file.provinces)}</span>`
+              : ""
+          }
+          ${
+            file.cities && file.cities.length>0
+              ? `<span>城市：${escapeHtml(Array.isArray(file.cities)?file.cities.join("、"):file.cities)}</span>`
               : ""
           }
           <span>大小：${escapeHtml(formatFileSize(file.size))}</span>
@@ -1200,25 +1223,21 @@ async function loadKnowledgeFiles(){
 
 function resetKnowledgeFilters(){
   const keyword=document.getElementById("kbKeywordInput");
-  const type=document.getElementById("kbTypeFilterInput");
   const status=document.getElementById("kbStatusFilter");
-  const region=document.getElementById("kbRegionFilter");
 
   if(keyword){
     keyword.value="";
-  }
-
-  if(type){
-    type.value="";
   }
 
   if(status){
     status.value="";
   }
 
-  if(region){
-    region.value="";
-  }
+  // 重置筛选标签选择器
+  window.__kbFilterFileTypes=[];
+  window.__kbFilterProvinces=[];
+  window.__kbFilterCities=[];
+  if(window.__recreateFilterTags) window.__recreateFilterTags();
 
   loadKnowledgeFiles();
 }
@@ -1243,7 +1262,6 @@ async function uploadKnowledgeFile(){
   const input=document.getElementById("kbFileInput");
   const status=document.getElementById("kbStatus");
   const button=document.getElementById("kbUploadBtn");
-  const fileTypeInput=document.getElementById("kbFileTypeInput");
 
   if(!input || !status || !button){
     return;
@@ -1257,8 +1275,12 @@ async function uploadKnowledgeFile(){
     return;
   }
 
-  const fileType=fileTypeInput ? fileTypeInput.value.trim() : "";
-  if(!fileType){
+  // 从标签选择器获取值
+  var uploadFileTypes=window.__kbUploadFileTypes || [];
+  var uploadProvinces=window.__kbUploadProvinces || [];
+  var uploadCities=window.__kbUploadCities || [];
+
+  if(uploadFileTypes.length===0){
     status.textContent="请选择文件类型才能上传";
     status.className="note error";
     return;
@@ -1294,24 +1316,15 @@ async function uploadKnowledgeFile(){
       const formData=new FormData();
       formData.append("file",file);
 
-      if(fileType){
-        formData.append("file_type",fileType);
-      }
+      // 文件类型数组
+      uploadFileTypes.forEach(function(v){formData.append("file_type",v);});
 
-      // 地方法规自动从文件名识别地区；国家法律/行政法规传空字符串
-      if(fileType==="地方法规"){
-        const regionValue=autoDetectRegion(file.name);
-        if(regionValue){
-          const parts=regionValue.split("-");
-          formData.append("provinces",parts[0]);
-          formData.append("cities",parts[1] || "");
-        }else{
-          formData.append("provinces","");
-          formData.append("cities","");
-        }
-      }else{
-        formData.append("provinces","");
-        formData.append("cities","");
+      // 省份/城市数组
+      if(uploadProvinces.length>0){
+        uploadProvinces.forEach(function(v){formData.append("provinces",v);});
+      }
+      if(uploadCities.length>0){
+        uploadCities.forEach(function(v){formData.append("cities",v);});
       }
 
       try{
@@ -1729,12 +1742,12 @@ function aiPage(){
           <div class="chat-input-footer">
             <label class="rag-label">
               <input type="checkbox" id="ragToggle" />RAG
-              <select id="ragProvince" class="rag-province-select">
-                <option value="">无（全量检索）</option>
-              </select>
-              <select id="ragCity" class="rag-city-select" disabled>
-                <option value="">全部市</option>
-              </select>
+              <span style="font-size:12px;color:#666;margin:0 4px">省份</span>
+              <div class="tag-selector" id="ragProvinceTags" style="display:inline-flex;vertical-align:middle"></div>
+              <span style="font-size:12px;color:#666;margin:0 4px">城市</span>
+              <div class="tag-selector" id="ragCityTags" style="display:inline-flex;vertical-align:middle"></div>
+              <span style="font-size:12px;color:#666;margin:0 4px">类型</span>
+              <div class="tag-selector" id="ragFileTypeTags" style="display:inline-flex;vertical-align:middle"></div>
             </label>
             <div class="chat-input-actions">
               <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
@@ -1993,8 +2006,9 @@ async function startAiStream(continuing){
           temperature:0.7,
           max_tokens:2048,
           enable_rag: enableRAG,
-          provinces: enableRAG ? (document.getElementById("ragProvince")?.value||"") : "",
-          cities: enableRAG ? (document.getElementById("ragCity")?.value||"") : ""
+          provinces: enableRAG ? (window.__ragProvinces||[]) : [],
+          cities: enableRAG ? (window.__ragCities||[]) : [],
+          file_type: enableRAG ? (window.__ragFileTypes||[]) : []
         })
       }
     );
@@ -3140,16 +3154,6 @@ if(kbUploadButton){
   kbUploadButton.onclick=uploadKnowledgeFile;
 }
 
-const kbFileTypeSelect=document.getElementById("kbFileTypeInput");
-if(kbFileTypeSelect){
-  kbFileTypeSelect.onchange=function(){
-    const regionField=document.getElementById("kbRegionField");
-    if(regionField){
-      regionField.style.display=this.value==="地方法规" ? "" : "none";
-    }
-  };
-}
-
 const kbBatchDeleteBtn=document.getElementById("kbBatchDeleteBtn");
 if(kbBatchDeleteBtn){
   kbBatchDeleteBtn.onclick=batchDeleteKnowledgeFiles;
@@ -3226,63 +3230,169 @@ loadDocuments();
     "新疆":["乌鲁木齐","克拉玛依","吐鲁番","哈密","阿克苏","喀什","和田","伊犁","塔城","阿勒泰"],
   };
 
-  // 填充省下拉
-  function initRegionSelect(){
-    const provinceSel = document.getElementById("ragProvince");
-    if(!provinceSel) return;
-    for(const p in provinceToCities){
-      const opt = document.createElement("option");
-      opt.value = p;
-      opt.textContent = p;
-      provinceSel.appendChild(opt);
+  // 初始化所有标签选择器
+  function initAllTagSelectors(){
+    var fileTypeOptions=[
+      {label:"暂定",value:"暂定"},
+      {label:"国家法律",value:"国家法律"},
+      {label:"行政法规",value:"行政法规"},
+      {label:"地方法规",value:"地方法规"}
+    ];
+    var provinceOptions=Object.keys(provinceToCities).map(function(p){
+      return {label:p,value:p};
+    });
+
+    // 上传弹窗标签
+    var uploadFileTypeEl=document.getElementById("kbUploadFileTypeTags");
+    if(uploadFileTypeEl){
+      window.__kbUploadFileTypes=[];
+      createTagSelector(uploadFileTypeEl,fileTypeOptions,[],function(vals){
+        window.__kbUploadFileTypes=vals;
+      });
+    }
+
+    var uploadProvinceEl=document.getElementById("kbUploadProvinceTags");
+    if(uploadProvinceEl){
+      window.__kbUploadProvinces=[];
+      createTagSelector(uploadProvinceEl,provinceOptions,[],function(vals){
+        window.__kbUploadProvinces=vals;
+        // 更新城市标签
+        updateUploadCityTags(vals);
+      });
+    }
+
+    var uploadCityEl=document.getElementById("kbUploadCityTags");
+    if(uploadCityEl){
+      window.__kbUploadCities=[];
+      window.__kbUploadCityEl=uploadCityEl;
+    }
+
+    // 筛选栏标签
+    var filterFileTypeEl=document.getElementById("kbFilterFileTypeTags");
+    if(filterFileTypeEl){
+      window.__kbFilterFileTypes=[];
+      createTagSelector(filterFileTypeEl,fileTypeOptions,[],function(vals){
+        window.__kbFilterFileTypes=vals;
+      });
+    }
+
+    var filterProvinceEl=document.getElementById("kbFilterProvinceTags");
+    if(filterProvinceEl){
+      window.__kbFilterProvinces=[];
+      createTagSelector(filterProvinceEl,provinceOptions,[],function(vals){
+        window.__kbFilterProvinces=vals;
+        updateFilterCityTags(vals);
+      });
+    }
+
+    var filterCityEl=document.getElementById("kbFilterCityTags");
+    if(filterCityEl){
+      window.__kbFilterCities=[];
+      window.__kbFilterCityEl=filterCityEl;
+    }
+
+    // 筛选栏重置函数
+    window.__recreateFilterTags=function(){
+      createTagSelector(filterFileTypeEl,fileTypeOptions,window.__kbFilterFileTypes||[],function(vals){
+        window.__kbFilterFileTypes=vals;
+      });
+      createTagSelector(filterProvinceEl,provinceOptions,window.__kbFilterProvinces||[],function(vals){
+        window.__kbFilterProvinces=vals;
+        updateFilterCityTags(vals);
+      });
+      var curCities=window.__kbFilterCities||[];
+      var cityOpts=getCityOptions(window.__kbFilterProvinces||[]);
+      createTagSelector(filterCityEl,cityOpts,curCities,function(vals){
+        window.__kbFilterCities=vals;
+      });
+    };
+
+    // RAG 标签
+    var ragProvinceEl=document.getElementById("ragProvinceTags");
+    if(ragProvinceEl){
+      window.__ragProvinces=[];
+      createTagSelector(ragProvinceEl,provinceOptions,[],function(vals){
+        window.__ragProvinces=vals;
+        updateRagCityTags(vals);
+      });
+    }
+
+    var ragCityEl=document.getElementById("ragCityTags");
+    if(ragCityEl){
+      window.__ragCities=[];
+      window.__ragCityEl=ragCityEl;
+    }
+
+    var ragFileTypeEl=document.getElementById("ragFileTypeTags");
+    if(ragFileTypeEl){
+      window.__ragFileTypes=[];
+      createTagSelector(ragFileTypeEl,fileTypeOptions,[],function(vals){
+        window.__ragFileTypes=vals;
+      });
     }
   }
 
-  // 更新城市下拉
-  function updateCitySelect(){
-    const provinceSel = document.getElementById("ragProvince");
-    const citySel = document.getElementById("ragCity");
-    if(!citySel) return;
-    citySel.innerHTML = '<option value="">全部市</option>';
-    if(!provinceSel || !provinceSel.value){
-      citySel.disabled = true;
-      return;
-    }
-    const cities = provinceToCities[provinceSel.value] || [];
-    for(const c of cities){
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      citySel.appendChild(opt);
-    }
-    citySel.disabled = false;
+  function getCityOptions(selectedProvinces){
+    var citySet=new Set();
+    selectedProvinces.forEach(function(p){
+      var cities=provinceToCities[p]||[];
+      cities.forEach(function(c){citySet.add(c);});
+    });
+    return Array.from(citySet).map(function(c){return {label:c,value:c};});
   }
+
+  function updateUploadCityTags(selectedProvinces){
+    var el=window.__kbUploadCityEl;
+    if(!el) return;
+    var cityOpts=getCityOptions(selectedProvinces);
+    var curCities=window.__kbUploadCities||[];
+    // 过滤掉已选但不再可用的城市
+    var validCities=curCities.filter(function(c){
+      return cityOpts.some(function(o){return o.value===c;});
+    });
+    window.__kbUploadCities=validCities;
+    createTagSelector(el,cityOpts,validCities,function(vals){
+      window.__kbUploadCities=vals;
+    });
+  }
+
+  function updateFilterCityTags(selectedProvinces){
+    var el=window.__kbFilterCityEl;
+    if(!el) return;
+    var cityOpts=getCityOptions(selectedProvinces);
+    var curCities=window.__kbFilterCities||[];
+    var validCities=curCities.filter(function(c){
+      return cityOpts.some(function(o){return o.value===c;});
+    });
+    window.__kbFilterCities=validCities;
+    createTagSelector(el,cityOpts,validCities,function(vals){
+      window.__kbFilterCities=vals;
+    });
+  }
+
+  function updateRagCityTags(selectedProvinces){
+    var el=window.__ragCityEl;
+    if(!el) return;
+    var cityOpts=getCityOptions(selectedProvinces);
+    var curCities=window.__ragCities||[];
+    var validCities=curCities.filter(function(c){
+      return cityOpts.some(function(o){return o.value===c;});
+    });
+    window.__ragCities=validCities;
+    createTagSelector(el,cityOpts,validCities,function(vals){
+      window.__ragCities=vals;
+    });
+  }
+
+  initAllTagSelectors();
 
   const ragToggle=document.getElementById("ragToggle");
-  const ragProvince=document.getElementById("ragProvince");
-  const ragCity=document.getElementById("ragCity");
-  function toggleRegionSelect(){
-    if(ragProvince){
-      ragProvince.style.display=ragToggle&&ragToggle.checked?"inline-block":"none";
-    }
-    if(ragCity){
-      ragCity.style.display=ragToggle&&ragToggle.checked?"inline-block":"none";
-    }
-  }
-  initRegionSelect();
-  if(ragProvince){
-    ragProvince.onchange = function(){
-      updateCitySelect();
-    };
-  }
   if(ragToggle){
     ragToggle.checked=enableRAG;
     ragToggle.onchange=()=>{
       enableRAG=ragToggle.checked;
-      toggleRegionSelect();
     };
   }
-  toggleRegionSelect();
 
   const clearButton=document.getElementById("clearChat");
   if(clearButton){
