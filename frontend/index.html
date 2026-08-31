@@ -2027,7 +2027,6 @@ async function startAiStream(continuing){
           if(currentAiBubble){
             currentAiBubble.textContent+=text;
           }
-          log.scrollTop=log.scrollHeight;
         }
       }catch(error){
         console.warn(
@@ -2469,7 +2468,7 @@ async function loadDataCenterTasks(silent=false){
 
       if(sameIds && existingRows.length>0){
         patchDataCenterRows(items, existingRows, status);
-        status.textContent=`共 ${result.total ?? items.length} 条任务`;
+        status.textContent=`共 ${items.length} 条任务`;
         status.className="note success";
         return;
       }
