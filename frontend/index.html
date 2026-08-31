@@ -1298,9 +1298,20 @@ async function uploadKnowledgeFile(){
         formData.append("file_type",fileType);
       }
 
-      const regionValue = autoDetectRegion(file.name);
-      if(regionValue){
-        formData.append("region",regionValue);
+      // 地方法规自动从文件名识别地区；国家法律/行政法规传空字符串
+      if(fileType==="地方法规"){
+        const regionValue=autoDetectRegion(file.name);
+        if(regionValue){
+          const parts=regionValue.split("-");
+          formData.append("region",parts[0]);
+          formData.append("city",parts[1] || "");
+        }else{
+          formData.append("region","");
+          formData.append("city","");
+        }
+      }else{
+        formData.append("region","");
+        formData.append("city","");
       }
 
       try{
