@@ -692,11 +692,7 @@ function dataCenterPage(){
 
       <p id="dataStatus" class="note">正在加载任务...</p>
       <div id="dataTaskList"></div>
-      <div id="dataPagination" class="pagination" style="display:none;margin-top:12px;text-align:center">
-        <button id="dataPrevPage" class="btn-secondary" disabled>上一页</button>
-        <span id="dataPageInfo" style="margin:0 12px;font-size:14px;color:#555"></span>
-        <button id="dataNextPage" class="btn-secondary" disabled>下一页</button>
-      </div>
+      <div id="dataPagination" class="pagination" style="display:none;margin-top:12px;text-align:center"></div>
     </section>
   `;
 }
@@ -2562,22 +2558,66 @@ async function loadDataCenterTasks(silent=false){
 function updateDataPagination(total){
   const PAGE_SIZE=30;
   const totalPages=Math.ceil(total/PAGE_SIZE);
-  const pagination=document.getElementById("dataPagination");
-  const pageInfo=document.getElementById("dataPageInfo");
-  const prevBtn=document.getElementById("dataPrevPage");
-  const nextBtn=document.getElementById("dataNextPage");
-
-  if(!pagination || !pageInfo || !prevBtn || !nextBtn) return;
+  const container=document.getElementById("dataPagination");
+  if(!container) return;
 
   if(totalPages<=1){
-    pagination.style.display="none";
+    container.style.display="none";
+    container.innerHTML="";
     return;
   }
 
-  pagination.style.display="block";
-  pageInfo.textContent="第 "+dataCenterPageNum+" 页 / 共 "+totalPages+" 页";
-  prevBtn.disabled=dataCenterPageNum<=1;
-  nextBtn.disabled=dataCenterPageNum>=totalPages;
+  container.style.display="block";
+
+  // 生成页码按钮列表
+  const pages=[];
+  const around=2; // 当前页前后显示页数
+
+  if(totalPages<=7){
+    for(let i=1;i<=totalPages;i++) pages.push(i);
+  }else{
+    // 第一页
+    pages.push(1);
+    // 当前页前后 around 页
+    const start=Math.max(2, dataCenterPageNum-around);
+    const end=Math.min(totalPages-1, dataCenterPageNum+around);
+    // 第一页后有间隔
+    if(start>2) pages.push("...");
+    for(let i=start;i<=end;i++) pages.push(i);
+    // 最后一页前有间隔
+    if(end<totalPages-1) pages.push("...");
+    // 最后一页
+    pages.push(totalPages);
+  }
+
+  let html="";
+  // 上一页
+  html+='<button class="btn-secondary page-btn" data-page="'+(dataCenterPageNum-1)+'"'+(dataCenterPageNum<=1?' disabled':'')+'>上一页</button>';
+
+  // 页码
+  for(const p of pages){
+    if(p==="..."){
+      html+='<span class="page-ellipsis" style="display:inline-block;min-width:32px;text-align:center;font-size:14px;color:#999">…</span>';
+    }else{
+      html+='<button class="btn-secondary page-btn'+(p===dataCenterPageNum?' page-active':'')+'" data-page="'+p+'" style="min-width:36px;'+(p===dataCenterPageNum?'background:#2563eb;color:#fff;border-color:#2563eb;':'')+'">'+p+'</button>';
+    }
+  }
+
+  // 下一页
+  html+='<button class="btn-secondary page-btn" data-page="'+(dataCenterPageNum+1)+'"'+(dataCenterPageNum>=totalPages?' disabled':'')+'>下一页</button>';
+
+  container.innerHTML=html;
+
+  // 绑定点击事件
+  container.querySelectorAll(".page-btn:not(:disabled)").forEach(btn=>{
+    btn.onclick=()=>{
+      const page=parseInt(btn.dataset.page,10);
+      if(page>0 && page<=totalPages && page!==dataCenterPageNum){
+        dataCenterPageNum=page;
+        loadDataCenterTasks();
+      }
+    };
+  });
 }
 
 const _STATE_NAMES={
@@ -3031,23 +3071,6 @@ function initPages(){
 if(dataRefreshButton){
   dataRefreshButton.onclick=()=>{
     dataCenterPageNum=1;
-    loadDataCenterTasks();
-  };
-}
-
-const dataPrevBtn=document.getElementById("dataPrevPage");
-const dataNextBtn=document.getElementById("dataNextPage");
-if(dataPrevBtn){
-  dataPrevBtn.onclick=()=>{
-    if(dataCenterPageNum>1){
-      dataCenterPageNum--;
-      loadDataCenterTasks();
-    }
-  };
-}
-if(dataNextBtn){
-  dataNextBtn.onclick=()=>{
-    dataCenterPageNum++;
     loadDataCenterTasks();
   };
 }
