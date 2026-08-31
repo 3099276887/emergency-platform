@@ -122,7 +122,7 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 .kb-filter input,
 .kb-filter select{
   width:auto;
-  flex:1 1 150px;
+  flex:0 1 auto;
   padding:9px 10px;
   border:1px solid #cbd7de;
   border-radius:4px;
@@ -286,6 +286,9 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-input-box:focus-within{
   border-color:#d0d0d0;box-shadow:0 2px 16px rgba(0,0,0,0.12);
 }
+.chat-input-row{
+  display:flex;gap:8px;align-items:flex-end;
+}
 .chat-input textarea{
   display:block;width:100%;max-height:280px;min-height:46px;
   border:none;outline:none;background:transparent;box-shadow:none;
@@ -316,6 +319,19 @@ body.side-collapsed aside .law-subnav{display:none}
   color:#6b7280;font-size:13px;cursor:pointer;user-select:none;
 }
 .rag-toggle-label input[type="checkbox"]{accent-color:#2563eb;margin:0;cursor:pointer;width:14px;height:14px}
+.chat-rag-bar-row{
+  display:flex;align-items:center;gap:8px;
+}
+.rag-edit-btn{
+  font-size:11px;padding:2px 10px;border:1px solid #d1d5db;border-radius:10px;
+  background:#fff;color:#6b7280;cursor:pointer;transition:all .15s;
+}
+.rag-edit-btn:hover{background:#f3f4f6;border-color:#9ca3af}
+.rag-save-btn{
+  font-size:12px;padding:4px 16px;border:none;border-radius:8px;
+  background:#2563eb;color:#fff;cursor:pointer;transition:all .15s;
+}
+.rag-save-btn:hover{background:#1d4ed8}
 .chat-rag-tags{
   display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;
 }
@@ -1760,9 +1776,12 @@ function aiPage(){
 
       <div class="chat-input">
         <div class="chat-rag-bar">
-          <label class="rag-toggle-label">
-            <input type="checkbox" id="ragToggle" /> RAG
-          </label>
+          <div class="chat-rag-bar-row">
+            <label class="rag-toggle-label">
+              <input type="checkbox" id="ragToggle" /> RAG
+            </label>
+            <button id="ragEditBtn" class="rag-edit-btn" type="button" style="display:none">编辑</button>
+          </div>
           <div class="chat-rag-tags" id="ragTagsPanel" style="display:none">
             <span class="rag-tag-label">类型</span>
             <div class="tag-selector" id="ragFileTypeTags"></div>
@@ -1770,26 +1789,29 @@ function aiPage(){
             <div class="tag-selector" id="ragProvinceTags"></div>
             <span class="rag-tag-label">城市</span>
             <div class="tag-selector tag-selector-scroll" id="ragCityTags"></div>
+            <button id="ragSaveBtn" class="rag-save-btn" type="button">保存</button>
           </div>
         </div>
-        <div class="chat-input-box">
-          <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
-          <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
-          <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
-            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-          <div class="chat-input-footer">
-            <div class="chat-input-actions">
-              <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
-                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              </button>
-              <button id="aiSend" class="chat-send-btn" type="button" title="发送">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-              </button>
+        <div class="chat-input-row">
+          <div class="chat-input-box">
+            <div id="chatImagePreview" class="chat-image-preview" style="display:none"></div>
+            <textarea id="aiInput" placeholder="给 AI 发送消息" rows="1"></textarea>
+            <button id="aiContinue" class="chat-continue-btn" type="button" title="继续生成" style="display:none">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="chat-input-footer">
+              <div class="chat-input-actions">
+                <button id="chatFileBtn" class="chat-action-btn" type="button" title="上传附件(图片不会上传知识库)">
+                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+                <button id="aiSend" class="chat-send-btn" type="button" title="发送">
+                  <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+              </div>
             </div>
           </div>
+          <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
         </div>
-        <button id="clearChat" class="chat-btn-new-chat" type="button">新建对话</button>
       </div>
     </div>
   `;
@@ -3331,16 +3353,43 @@ loadDocuments();
   initAllTagSelectors();
 
   const ragToggle=document.getElementById("ragToggle");
+  const ragEditBtn=document.getElementById("ragEditBtn");
+  const ragSaveBtn=document.getElementById("ragSaveBtn");
+  const ragTagsPanel=document.getElementById("ragTagsPanel");
+
+  function updateRagUI(){
+    // RAG 打开 → 显示编辑按钮
+    if(ragEditBtn) ragEditBtn.style.display=enableRAG?"inline-block":"none";
+  }
+
   if(ragToggle){
     ragToggle.checked=enableRAG;
     ragToggle.onchange=()=>{
       enableRAG=ragToggle.checked;
-      var panel=document.getElementById("ragTagsPanel");
-      if(panel) panel.style.display=enableRAG?"":"none";
+      updateRagUI();
+      // RAG 勾选后自动展开标签面板
+      if(enableRAG && ragTagsPanel) ragTagsPanel.style.display="flex";
     };
-    // 初始状态
-    var panel=document.getElementById("ragTagsPanel");
-    if(panel) panel.style.display=enableRAG?"":"none";
+    updateRagUI();
+  }
+
+  // 编辑按钮：展开标签面板
+  if(ragEditBtn && ragTagsPanel){
+    ragEditBtn.onclick=()=>{
+      if(ragTagsPanel) ragTagsPanel.style.display="flex";
+    };
+  }
+
+  // 保存按钮：收起标签面板，保留选中值
+  if(ragSaveBtn && ragTagsPanel){
+    ragSaveBtn.onclick=()=>{
+      if(ragTagsPanel) ragTagsPanel.style.display="none";
+    };
+  }
+
+  // 初始状态：RAG 开启时默认展开标签面板，方便首次选择
+  if(ragTagsPanel){
+    ragTagsPanel.style.display=enableRAG?"flex":"none";
   }
 
   const clearButton=document.getElementById("clearChat");
