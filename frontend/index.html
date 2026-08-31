@@ -3546,35 +3546,6 @@ function initKbFilterTabs(){
 }
 initKbFilterTabs();
 
-  initAllTagSelectors();
-
-loadTaskTypes();
-loadDocuments();
-
-  const sendButton=document.getElementById("aiSend");
-  if(sendButton){
-    sendButton.onclick=sendAiMessage;
-  }
-
-  const aiInput=document.getElementById("aiInput");
-  if(aiInput){
-    aiInput.addEventListener("keydown",event=>{
-      if(event.key==="Enter" && !event.shiftKey){
-        event.preventDefault();
-
-        if(sendButton && !sendButton.disabled && !sendButton.classList.contains("state-stop") && !sendButton.classList.contains("state-continue")){
-          sendAiMessage();
-        }
-      }
-    });
-    aiInput.addEventListener("input",function(){
-      this.style.height="auto";
-      const maxH=280;
-      this.style.height=Math.min(this.scrollHeight,maxH)+"px";
-      this.style.overflowY=this.scrollHeight>maxH?"auto":"hidden";
-    });
-  }
-
   // 全国省市区数据（精简版）
   const provinceToCities = {
     "北京":["北京"],
@@ -3609,6 +3580,35 @@ loadDocuments();
     "宁夏":["银川","石嘴山","吴忠","固原","中卫"],
     "新疆":["乌鲁木齐","克拉玛依","吐鲁番","哈密","阿克苏","喀什","和田","伊犁","塔城","阿勒泰"],
   };
+
+  initAllTagSelectors();
+
+loadTaskTypes();
+loadDocuments();
+
+  const sendButton=document.getElementById("aiSend");
+  if(sendButton){
+    sendButton.onclick=sendAiMessage;
+  }
+
+  const aiInput=document.getElementById("aiInput");
+  if(aiInput){
+    aiInput.addEventListener("keydown",event=>{
+      if(event.key==="Enter" && !event.shiftKey){
+        event.preventDefault();
+
+        if(sendButton && !sendButton.disabled && !sendButton.classList.contains("state-stop") && !sendButton.classList.contains("state-continue")){
+          sendAiMessage();
+        }
+      }
+    });
+    aiInput.addEventListener("input",function(){
+      this.style.height="auto";
+      const maxH=280;
+      this.style.height=Math.min(this.scrollHeight,maxH)+"px";
+      this.style.overflowY=this.scrollHeight>maxH?"auto":"hidden";
+    });
+  }
 
   // 初始化所有标签选择器
   function initAllTagSelectors(){
