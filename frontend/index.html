@@ -1303,15 +1303,15 @@ async function uploadKnowledgeFile(){
         const regionValue=autoDetectRegion(file.name);
         if(regionValue){
           const parts=regionValue.split("-");
-          formData.append("region",parts[0]);
-          formData.append("city",parts[1] || "");
+          formData.append("provinces",parts[0]);
+          formData.append("cities",parts[1] || "");
         }else{
-          formData.append("region","");
-          formData.append("city","");
+          formData.append("provinces","");
+          formData.append("cities","");
         }
       }else{
-        formData.append("region","");
-        formData.append("city","");
+        formData.append("provinces","");
+        formData.append("cities","");
       }
 
       try{
