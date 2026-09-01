@@ -100,9 +100,12 @@ async function doLogin(){
     // 登录页不加载 auth.js，这里直接写入；key 必须与 auth.js 中的常量一致
     try { localStorage.setItem("sferag_jwt_token", body.access_token); } catch(e){}
 
-    var redir = getRedirect() || "/";
-    // 若已带 token，避免把 login.html 作为跳转目标
-    if(redir.indexOf("login.html") >= 0) redir = "/";
+    var redir = getRedirect();
+    // 无特定跳转目标时，按角色进入各自门户（三员各有独立界面）
+    if(!redir || redir === "/" || redir.indexOf("login.html") >= 0){
+      var homes = { user:"index.html", sysadmin:"sysadmin.html", secadmin:"secadmin.html", audadmin:"audadmin.html" };
+      redir = homes[body.role] || "index.html";
+    }
     location.replace(redir);
   }catch(e){
     showError("无法连接后端：请确认网关可达，或联系管理员");

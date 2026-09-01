@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>审计员台 - 应急安全综合平台</title>
+<script src="auth.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,"Microsoft YaHei",sans-serif;background:#eef2f5;color:#233;min-height:100vh}
+  header{background:#7f1d1d;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  header h1{font-size:18px}
+  header .ops button{margin-left:10px;background:rgba(255,255,255,.15);border:0;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer}
+  .wrap{max-width:1080px;margin:24px auto;padding:0 16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
+  .card{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:16px 18px}
+  .card h3{font-size:13px;color:#6b7d89;margin-bottom:8px}
+  .card .big{font-size:24px;color:#7f1d1d;font-weight:700}
+  .card .sub{font-size:12px;color:#9aaab3;margin-top:4px}
+  .panel{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:18px 20px;margin-bottom:18px}
+  .panel h2{font-size:16px;color:#7f1d1d;margin-bottom:4px}
+  .panel .sub{font-size:13px;color:#6b7d89;margin-bottom:14px}
+  .tip{font-size:13px;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;padding:10px 12px;border-radius:6px;line-height:1.8}
+  .tip b{color:#991b1b}
+</style>
+</head>
+<body>
+<header>
+  <h1>应急安全综合平台 · 审计员台</h1>
+  <div class="ops"><span id="whoami"></span><button onclick="window.location.href='index.html'">进入业务台（只读）</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
+</header>
+<div class="wrap">
+  <div class="cards" id="readCards"></div>
+  <div class="panel">
+    <h2>审计日志查看</h2>
+    <div class="sub">全局只读留痕：谁、何时、做了什么操作。以下为预留位，审计日志将依赖平台操作流水接入。</div>
+    <p class="tip">审计记录接入规划：将在后端建立操作流水（登录 / 上传 / 删除 / 报告创建 / 敏感标记 / 用户管理），供审计员在此只读查询与导出，且<b>审计员不具备任何写权限</b>，无法掩盖操作痕迹。</p>
+  </div>
+  <div class="panel">
+    <h2>监督与制衡</h2>
+    <div class="sub">三权分立下的审计视角。</div>
+    <p class="tip">sysadmin 建号/配系统 → secadmin 管数据保密与授权 → audadmin 全程审计。<br>
+    任一管理动作不可被同一账号既执行又留痕回避；审计员不能修改任何人权限，只能记录与报告。</p>
+  </div>
+</div>
+<script>
+(function(){
+  var who = document.getElementById("whoami");
+  var cards = document.getElementById("readCards");
+  function card(k,v,s){ cards.innerHTML += "<div class='card'><h3>"+k+"</h3><div class='big'>"+v+"</div><div class='sub'>"+s+"</div></div>"; }
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+  async function me(){
+    var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
+    if(r.status === 401){ location.href="login.html"; return null; }
+    var d = await r.json();
+    if(d.role !== "audadmin"){ location.href = "index.html"; return null; }
+    return d;
+  }
+
+  async function loadRead(){
+    try {
+      var r = await fetch("/api/v1/documents/stats", {headers:{Accept:"application/json"}});
+      if(r.ok){ var s = await r.json(); card("报告", s.total||s.count||"—", "只读统计"); }
+    }catch(e){}
+    try {
+      var r2 = await fetch("/api/v1/kb/stats", {headers:{Accept:"application/json"}});
+      if(r2.ok){ var s2 = await r2.json(); card("知识库文件", s2.file_count||0, "只读统计"); }
+    }catch(e){}
+    card("审计角色", "audadmin", "全局只读");
+  }
+
+  who.textContent = "审计员";
+  me().then(function(d){ if(!d) return; who.textContent = "审计员："+d.username; loadRead(); });
+  loadRead();
+})();
+</script>
+</body>
+</html>

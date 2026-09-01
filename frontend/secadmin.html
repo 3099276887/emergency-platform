@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>安全保密员台 - 应急安全综合平台</title>
+<script src="auth.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,"Microsoft YaHei",sans-serif;background:#eef2f5;color:#233;min-height:100vh}
+  header{background:#14532d;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  header h1{font-size:18px}
+  header .ops button{margin-left:10px;background:rgba(255,255,255,.15);border:0;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer}
+  .wrap{max-width:1080px;margin:24px auto;padding:0 16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
+  .card{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:16px 18px}
+  .card h3{font-size:13px;color:#6b7d89;margin-bottom:8px}
+  .card .big{font-size:24px;color:#14532d;font-weight:700}
+  .card .sub{font-size:12px;color:#9aaab3;margin-top:4px}
+  .panel{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:18px 20px;margin-bottom:18px}
+  .panel h2{font-size:16px;color:#14532d;margin-bottom:4px}
+  .panel .sub{font-size:13px;color:#6b7d89;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e6edf2}
+  th{background:#f5f8fa;color:#536b78;font-weight:600}
+  .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px}
+  .tag.sens{background:#fee2e2;color:#991b1b}
+  .tag.normal{background:#eef2f5;color:#536b78}
+  td button{padding:4px 9px;border:1px solid #cbd7de;border-radius:4px;background:#fff;color:#1f3a52;cursor:pointer;font-size:12px;margin-right:6px}
+  td button.del:hover{border-color:#dc2626;color:#dc2626}
+  td button.mark:hover{border-color:#14532d;color:#14532d}
+  .tip{font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 12px;border-radius:6px;line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <h1>应急安全综合平台 · 安全保密员台</h1>
+  <div class="ops"><span id="whoami"></span><button onclick="window.location.href='index.html'">进入业务台</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
+</header>
+<div class="wrap">
+  <div class="cards" id="statCards"></div>
+  <div class="panel">
+    <h2>数据保密台账 · 敏感文件治理</h2>
+    <div class="sub">安全保密员专属：可标记敏感文件、撤销标记、并执行知识库文件删除（普通用户与系统管理员均不可删除）。</div>
+    <table id="fileTable"></table>
+    <div id="emptyTip" style="color:#9aaab3;padding:14px 0;font-size:13px"></div>
+  </div>
+  <div class="panel">
+    <h2>权限治理视图</h2>
+    <div class="sub">当前权限矩阵：普通用户禁用后台监控/用户管理/审计；三员各司其职。</div>
+    <p class="tip">· user 普通用户：业务全功能，禁监控/用户管理/系统配置/审计日志<br>
+    · sysadmin 系统管理员：业务 + 用户管理 + 系统配置 + 后台监控（禁审计日志）<br>
+    · secadmin 安全保密员：业务（含知识库写）+ 后台监控；专属＝删除文件 & 敏感标记<br>
+    · audadmin 审计员：全局只读 + 审计日志（未来接入）<br>监督关系：sysadmin 建号/配系统 → secadmin 保密与授权 → audadmin 全程审计，三权分立、互相制衡。</p>
+  </div>
+</div>
+<script>
+(function(){
+  var who = document.getElementById("whoami");
+  var table = document.getElementById("fileTable");
+  var ROLE_NAMES = {user:"普通用户", sysadmin:"系统管理员", secadmin:"安全保密员", audadmin:"审计员"};
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+  async function me(){
+    var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
+    if(r.status === 401){ location.href="login.html"; return null; }
+    var d = await r.json();
+    if(d.role !== "secadmin"){ location.href = "index.html"; return null; }
+    return d;
+  }
+
+  function stat(k, v, sub){ document.getElementById("statCards").innerHTML += "<div class='card'><h3>"+k+"</h3><div class='big'>"+v+"</div><div class='sub'>"+sub+"</div></div>"; }
+
+  async function loadFiles(){
+    var r = await fetch("/api/v1/files", {headers:{Accept:"application/json"}});
+    if(!r.ok){ table.innerHTML=''; document.getElementById("emptyTip").textContent="加载失败："+r.status; return; }
+    var list = await r.json();
+    var sens = list.filter(function(f){ return f.sensitive; });
+    stat("文件总数", list.length, "知识库登记文件");
+    stat("敏感文件", sens.length, "已标记 / 需重点把控");
+    stat("非敏感", list.length - sens.length, "常规文件");
+    if(!list.length){ table.innerHTML=''; document.getElementById("emptyTip").textContent="暂无知识库文件。"; return; }
+    document.getElementById("emptyTip").textContent="";
+    var rows = list.map(function(f){
+      var isSens = !!f.sensitive;
+      var tag = '<span class="tag '+(isSens?"sens":"normal")+'">'+(isSens?"敏感":"常规")+"</span>";
+      return "<tr data-name='"+esc(f.filename)+"' data-sens='"+ (isSens?"1":"0") +"'>"+
+        "<td>"+esc(f.filename)+"</td>"+
+        "<td>"+esc(f.file_type||"—")+"</td>"+
+        "<td>"+tag+"</td>"+
+        (isSens
+          ? "<td><button class='mark' title='撤销敏感标记'>撤销敏感</button><button class='del'>删除</button></td>"
+          : "<td><button class='mark' title='设为敏感文件'>标记敏感</button><button class='del'>删除</button></td>")+
+        "</tr>";
+    }).join("");
+    table.innerHTML = "<thead><tr><th>文件</th><th>类型</th><th>保密</th><th>操作</th></tr></thead><tbody>"+rows+"</tbody>";
+  }
+
+  table.addEventListener("click", function(ev){
+    var btn = ev.target.closest("button");
+    if(!btn) return;
+    var tr = btn.closest("tr");
+    var name = tr.getAttribute("data-name");
+    var sens = tr.getAttribute("data-sens") === "1";
+    var txt = btn.textContent;
+
+    if(txt === "标记敏感" || txt === "撤销敏感"){
+      var to = txt === "标记敏感";
+      var resp = fetch("/api/v1/files/"+encodeURIComponent(name)+"/sensitive", {
+        method:"PATCH", headers:{"Content-Type":"application/json","Accept":"application/json"},
+        body: JSON.stringify({sensitive: to})
+      }).then(function(r){ if(!r.ok) throw new Error(r.status); loadFiles(); });
+    } else if(txt === "删除"){
+      if(!confirm("确认删除知识库文件？此操作不可恢复。\n"+name)) return;
+      fetch("/api/v1/files/"+encodeURIComponent(name), {method:"DELETE", headers:{Accept:"application/json"}})
+        .then(function(r){ if(!r.ok) throw new Error(r.status); loadFiles(); })
+        .catch(function(e){ alert("删除失败："+e.message); });
+    }
+  });
+
+  who.textContent = "安全保密员";
+  me().then(function(d){ if(!d) return; who.textContent = "安全保密员："+d.username; loadFiles(); });
+  loadFiles();
+})();
+</script>
+</body>
+</html>

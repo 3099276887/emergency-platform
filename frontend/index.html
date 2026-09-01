@@ -468,6 +468,7 @@ body.side-collapsed aside .law-subnav{display:none}
   <strong>应急安全综合平台</strong>
 </div>
 <span>内网设备：192.168.10.101</span>
+<span id="roleNav" style="display:inline-flex;gap:6px"></span>
 <span id="aiStatusBar" class="ai-status-bar" title="AI 服务状态">
   <span class="ai-status-dot offline" id="aiStatusDot"></span>
   <span id="aiStatusText">无法连接</span>
@@ -772,6 +773,32 @@ body.side-collapsed aside .law-subnav{display:none}
 </button>
 
 <script src="auth.js"></script>
+<script>
+// 角色化导航：仅三员显示各自专属界面入口，普通用户不显示
+(function(){
+  var nav = document.getElementById("roleNav");
+  function btn(label, href, color){
+    var a = document.createElement("a");
+    a.textContent = label;
+    a.href = href;
+    a.style.cssText = "text-decoration:none;font-size:12px;padding:6px 12px;border-radius:4px;color:#fff;background:"+color+";cursor:pointer;display:inline-block";
+    return a;
+  }
+  var ROLE_LINKS = {
+    sysadmin: { label:"管理员台", href:"sysadmin.html", color:"#c2410c" },
+    secadmin: { label:"安全保密台", href:"secadmin.html", color:"#15803d" },
+    audadmin: { label:"审计台", href:"audadmin.html", color:"#b91c1c" }
+  };
+  fetch("/api/v1/auth/me", { headers:{Accept:"application/json"} }).then(function(r){
+    return r.ok ? r.json() : null;
+  }).then(function(me){
+    if(me && ROLE_LINKS[me.role]){
+      var cfg = ROLE_LINKS[me.role];
+      nav.appendChild(btn(cfg.label, cfg.href, cfg.color));
+    }
+  }).catch(function(){});
+})();
+</script>
 <script>
 const modules={
 ai:{name:"AI 对话",icon:"AI",desc:"与本地千问模型进行对话"},

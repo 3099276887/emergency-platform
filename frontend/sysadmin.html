@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>系统管理员台 - 应急安全综合平台</title>
+<script src="auth.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,"Microsoft YaHei",sans-serif;background:#eef2f5;color:#233;min-height:100vh}
+  header{background:#123b5d;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  header h1{font-size:18px}
+  header .ops button{margin-left:10px;background:rgba(255,255,255,.15);border:0;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer}
+  header .ops button:hover{background:rgba(255,255,255,.3)}
+  .wrap{max-width:1080px;margin:24px auto;padding:0 16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
+  .card{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:16px 18px}
+  .card h3{font-size:13px;color:#6b7d89;margin-bottom:8px}
+  .card .big{font-size:26px;color:#123b5d;font-weight:700}
+  .card .sub{font-size:12px;color:#9aaab3;margin-top:4px}
+  .panel{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:18px 20px;margin-bottom:18px}
+  .panel h2{font-size:16px;color:#123b5d;margin-bottom:4px}
+  .panel .sub{font-size:13px;color:#6b7d89;margin-bottom:14px}
+  .btn{padding:9px 18px;border:0;border-radius:4px;background:#123b5d;color:#fff;cursor:pointer;font-size:14px;text-decoration:none;display:inline-block;margin-right:10px}
+  .btn.gray{background:#e5ebf0;color:#1f3a52}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e6edf2}
+  th{background:#f5f8fa;color:#536b78;font-weight:600}
+  .tip{font-size:13px;color:#3a6079;background:#f0f6fc;border:1px solid #d3e4f2;padding:10px 12px;border-radius:6px;line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <h1>应急安全综合平台 · 系统管理员台</h1>
+  <div class="ops"><span id="whoami"></span><button onclick="window.location.href='index.html'">进入业务台</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
+</header>
+<div class="wrap">
+  <div class="panel">
+    <h2>后台监控</h2>
+    <div class="sub">实时系统资源与关键进程（同源只读）。</div>
+    <div class="cards" id="monitorCards"></div>
+    <div id="monitorExtra"></div>
+  </div>
+  <div class="panel">
+    <h2>用户管理</h2>
+    <div class="sub">创建普通用户与三员账号、停用/启用、重置密码、调整角色。</div>
+    <a class="btn" href="users.html">前往用户管理 →</a>
+  </div>
+  <div class="panel">
+    <h2>系统配置</h2>
+    <div class="sub">模型、任务模板、敏感参数配置（预留）。</div>
+    <p class="tip">系统配置模块规划中：后续在此接模型切换 / 任务模板 / 全局参数。当前不以明文暴露敏感参数。</p>
+  </div>
+</div>
+<script>
+(function(){
+  var who = document.getElementById("whoami");
+
+  async function me(){
+    var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
+    if(r.status === 401){ location.href="login.html"; return null; }
+    var d = await r.json();
+    if(d.role !== "sysadmin"){ location.href = "index.html"; return null; }
+    return d;
+  }
+
+  async function loadMonitor(){
+    var r = await fetch("/api/v1/monitor", {headers:{Accept:"application/json"}});
+    if(r.status === 403){ document.getElementById("monitorCards").innerHTML='<p class="sub">当前角色无权查看后台监控</p>'; return; }
+    if(!r.ok) return;
+    var m = await r.json();
+    var cards = "";
+    function big(label, v, sub){ return "<div class='card'><h3>"+label+"</h3><div class='big'>"+v+"</div><div class='sub'>"+sub+"</div></div>"; }
+    if(m.cpu) cards += big("CPU", (m.cpu.usage!=null?Math.round(m.cpu.usage):"N/A")+"%", "核心 "+(m.cpu.cores||""));
+    if(m.memory) cards += big("内存", Math.round(m.memory.used_percent||0)+"%", "已用/总 "+(m.memory.used_gb||0)+"/"+(m.memory.total_gb||0)+" GB");
+    if(m.disk) cards += big("磁盘", Math.round(m.disk.used_percent||0)+"%", "已用/总 "+(m.disk.used_gb||0)+"/"+(m.disk.total_gb||0)+" GB");
+    cards += big("关键进程", "见下表", "服务健康度");
+    document.getElementById("monitorCards").innerHTML = cards;
+  }
+
+  who.textContent = "系统管理员";
+  me().then(function(d){ if(!d) return; who.textContent = "系统管理员："+d.username; });
+  loadMonitor();
+})();
+</script>
+</body>
+</html>
