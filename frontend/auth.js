@@ -1,4 +1,4 @@
-/* SafeRAG 前端统一鉴权脚本（index.html / admin.html 使用）
+/* SafeRAG 前端统一鉴权脚本（index / admin / law_detail / data_detail 四个页面共用）
  *
  * - 从 localStorage 读取/写入 JWT
  * - 页面加载时：未登录则重定向到 login.html（保留原地址用于登录后跳回）
