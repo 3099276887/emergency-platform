@@ -771,6 +771,7 @@ body.side-collapsed aside .law-subnav{display:none}
   <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"></path></svg>
 </button>
 
+<script src="auth.js"></script>
 <script>
 const modules={
 ai:{name:"AI 对话",icon:"AI",desc:"与本地千问模型进行对话"},
@@ -2700,7 +2701,7 @@ async function checkDocumentStatus(id){
       const fmt=document.getElementById("downloadFormatSelect");
       const formatParam=fmt ? fmt.value : "md";
       downloadLink.href=
-        API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+formatParam;
+        authUrl(API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+formatParam);
       downloadLink.download=(result.output_filename || "分析报告")+(formatParam==="docx"?".docx":".md");
       downloadLink.hidden=false;
       const downloadArea=document.getElementById("downloadArea");
@@ -3069,7 +3070,7 @@ function patchDataCenterRows(items, existingRows, statusEl){
             <option value="md">.md</option>
             <option value="docx">.docx</option>
           </select>
-          <a class="download" href="${escapeHtml(downloadUrl)}?format=md" download style="margin:0">下载</a>
+          <a class="download" href="${escapeHtml(authUrl(downloadUrl+"?format=md"))}" download style="margin:0">下载</a>
         `;
         actions.appendChild(downloadWrap);
         // 绑定刚创建的 select 的 onchange
@@ -3079,7 +3080,7 @@ function patchDataCenterRows(items, existingRows, statusEl){
             const fmt=this.value;
             const link=this.nextElementSibling;
             if(link && link.tagName.toLowerCase()==="a"){
-              link.href=API_BASE+"/documents/"+encodeURIComponent(item.id)+"/download?format="+fmt;
+              link.href=authUrl(API_BASE+"/documents/"+encodeURIComponent(item.id)+"/download?format="+fmt);
               const baseName=item.output_filename || "分析报告";
               link.download=baseName+(fmt==="docx"?".docx":".md");
             }
@@ -3091,7 +3092,7 @@ function patchDataCenterRows(items, existingRows, statusEl){
         const linkEl=downloadWrap.querySelector("a.download");
         const fmt=selectEl ? (selectEl.value || "md") : "md";
         if(linkEl){
-          linkEl.href=downloadUrl+"?format="+fmt;
+          linkEl.href=authUrl(downloadUrl+"?format="+fmt);
           const baseName=item.output_filename || "分析报告";
           linkEl.download=baseName+(fmt==="docx"?".docx":".md");
         }
@@ -3171,7 +3172,7 @@ function bindDataCenterRowEvents(list, items, status){
       const fmt=this.value;
       const link=this.nextElementSibling;
       if(link && link.tagName.toLowerCase()==="a"){
-        link.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt;
+        link.href=authUrl(API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt);
         const item=items.find(i=>String(i.id)===String(id));
         const baseName=item?.output_filename || "分析报告";
         link.download=baseName+(fmt==="docx"?".docx":".md");
@@ -3496,7 +3497,7 @@ if(downloadFormatSelect){
     const id=currentDocumentId;
     if(!id) return;
     const fmt=this.value;
-    downloadLink.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt;
+    downloadLink.href=authUrl(API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format="+fmt);
     downloadLink.download=(document.getElementById("fileName").value.trim() || "分析报告")+(fmt==="docx"?".docx":".md");
   };
 }
