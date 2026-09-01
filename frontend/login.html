@@ -97,8 +97,8 @@ async function doLogin(){
     }
     if(!body || !body.access_token){ showError("登录失败：响应缺少访问令牌"); return; }
 
-    // 保存 token（auth.js 的 setAuthToken）
-    if(window.setAuthToken) window.setAuthToken(body.access_token);
+    // 登录页不加载 auth.js，这里直接写入；key 必须与 auth.js 中的常量一致
+    try { localStorage.setItem("sferag_jwt_token", body.access_token); } catch(e){}
 
     var redir = getRedirect() || "/";
     // 若已带 token，避免把 login.html 作为跳转目标
