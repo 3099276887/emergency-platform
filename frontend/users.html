@@ -44,7 +44,7 @@
   td button:hover{border-color:#2563eb;color:#2563eb}
   td button.danger:hover{border-color:#dc2626;color:#dc2626}
   .empty{color:#9aaab3;font-size:13px;padding:16px 0}
-  #selfRow button{display:none}
+  tr.self-row button{display:none}
 </style>
 </head>
 <body>
@@ -161,7 +161,8 @@ function renderTable(users, me){
     var ops = isSelf ? '<span class="st" style="margin-left:4px">当前账号不可操作</span>' :
       btnStop + '<button title="重置为初始强度密码">重置密码</button>' +
       '<button class="danger" title="直接修改角色">改角色</button>';
-    return "<tr id='selfRow' data-id='"+u.id+"' data-username='" + esc(u.username) + "' data-role='"+esc(u.role)+"' data-active='"+u.is_active+"'>" +
+    var selfCls = isSelf ? ' class="self-row"' : '';
+    return "<tr"+selfCls+" data-id='"+u.id+"' data-username='" + esc(u.username) + "' data-role='"+esc(u.role)+"' data-active='"+u.is_active+"'>" +
       "<td>" + esc(u.username) + "<div class='st'>" + (u.full_name ? esc(u.full_name) : "—") + "</div></td>" +
       "<td><span class='tag " + esc(u.role) + "'>" + esc(ROLE_NAMES[u.role] || u.role) + "</span></td>" +
       "<td><span class='st " + stCls + "'>" + st + "</span></td>" +
