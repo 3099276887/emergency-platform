@@ -218,7 +218,7 @@
     var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
     if(r.status === 401){ location.href="login.html"; return null; }
     var d = await r.json();
-    if(d.role !== "audadmin"){ location.href = "index.html"; return null; }
+    if(d.role !== "audadmin"){ alert("权限不足：您的账号不是审计员，无法访问该页面"); location.href = "index.html"; return null; }
     return d;
   }
 

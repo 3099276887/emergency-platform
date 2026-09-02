@@ -154,7 +154,7 @@ document.getElementById("createForm").addEventListener("submit", async function(
 
 me().then(function(d){
   if(!d){ location.href = "login.html"; return; }
-  if(d.role !== "sysadmin"){ location.href = "index.html"; return; }
+  if(d.role !== "sysadmin"){ alert("权限不足：您的账号不是系统管理员，无法访问该页面"); location.href = "index.html"; return; }
   who.textContent = "系统管理员：" + d.username;
 });
 

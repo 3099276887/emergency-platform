@@ -58,7 +58,7 @@
     toLogin();
   }
 
-  // 拦截 fetch：自动附加 Authorization 头；401 统一登出并跳转
+  // 拦截 fetch：自动附加 Authorization 头；401 统一登出并跳转；403 弹出无权限提示
   if(window.fetch){
     var _origFetch = window.fetch.bind(window);
     window.fetch = function(input, init){
@@ -73,6 +73,14 @@
         if(resp.status === 401 && location.pathname.indexOf(LOGIN_PAGE) < 0){
           logout();
           toLogin();
+        }
+        if(resp.status === 403){
+          resp.json().then(function(data){
+            var msg = data.detail || data.message || "您没有该操作的权限，请检查账号角色";
+            alert("权限不足：" + msg);
+          }).catch(function(){
+            alert("权限不足：您的账号不拥有该操作权限");
+          });
         }
         return resp;
       });
