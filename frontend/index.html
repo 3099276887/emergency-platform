@@ -3820,18 +3820,19 @@ loadDocuments();
   }
 
   function getCityOptions(selectedProvinces, selectedCities){
+    var selectedProvincesSet=new Set(selectedProvinces||[]);
     var citySet=new Set();
-    // 先收集当前选中省份的全部城市
+    // 当前选中的省份：列出其全部城市
     (selectedProvinces||[]).forEach(function(p){
-      var cities=provinceToCities[p]||[];
-      cities.forEach(function(c){citySet.add(c);});
+      (provinceToCities[p]||[]).forEach(function(c){citySet.add(c);});
     });
-    // 对已选城市，并入其所属省份的全部城市，
-    // 这样即使取消该省选中，其城市选项与已选城市依然保留
+    // 未选中的省份但已有选中城市：仅保留该已选城市本身，
+    // 这样取消省份后城市区只显示已选城市，重新点击省份时才重新列全部城市
     (selectedCities||[]).forEach(function(c){
+      if(citySet.has(c)) return;
       var p=getProvinceOfCity(c);
-      if(p){
-        (provinceToCities[p]||[]).forEach(function(cc){citySet.add(cc);});
+      if(p && !selectedProvincesSet.has(p)){
+        citySet.add(c);
       }
     });
     return Array.from(citySet).map(function(c){return {label:c,value:c};});
