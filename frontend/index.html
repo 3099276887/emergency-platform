@@ -463,14 +463,13 @@ body.side-collapsed aside .law-subnav{display:none}
 }
 .header-switch:hover{background:rgba(255,255,255,.28)}
 
-/* 角色导航按钮：与切换账号统一风格，带颜色左边框 */
+/* 角色导航按钮：与切换账号统一风格，半透明颜色背景标识角色 */
 .role-link{
-  margin-left:0;padding:6px 10px;border:1px solid rgba(255,255,255,.35);
-  border-left-width:3px;background:rgba(255,255,255,.12);color:#fff;
-  font-size:13px;border-radius:4px;cursor:pointer;white-space:nowrap;
-  text-decoration:none;display:inline-block;
+  padding:6px 10px;border:1px solid;color:#fff;font-size:13px;
+  border-radius:4px;cursor:pointer;white-space:nowrap;
+  text-decoration:none;display:inline-block;transition:opacity .15s;
 }
-.role-link:hover{background:rgba(255,255,255,.28)}
+.role-link:hover{opacity:.8}
 
 /* 批量删除 */
 .kb-batch-bar{
@@ -499,7 +498,7 @@ body.side-collapsed aside .law-subnav{display:none}
   <span class="ai-status-dot offline" id="aiStatusDot"></span>
   <span id="aiStatusText">无法连接</span>
 </span>
-<span id="roleNav" style="display:inline-flex;gap:4px"></span>
+<span id="roleNav" style="display:inline-flex;gap:4px;margin-left:auto"></span>
 <button id="switchAccountBtn" class="header-switch" title="退出当前账号并重新登录">切换账号</button>
 </header>
 
