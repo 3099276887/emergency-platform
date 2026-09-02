@@ -3812,11 +3812,27 @@ loadDocuments();
     }
   }
 
-  function getCityOptions(selectedProvinces){
+  function getProvinceOfCity(city){
+    for(var p in provinceToCities){
+      if(provinceToCities[p] && provinceToCities[p].indexOf(city)!==-1) return p;
+    }
+    return null;
+  }
+
+  function getCityOptions(selectedProvinces, selectedCities){
     var citySet=new Set();
-    selectedProvinces.forEach(function(p){
+    // 先收集当前选中省份的全部城市
+    (selectedProvinces||[]).forEach(function(p){
       var cities=provinceToCities[p]||[];
       cities.forEach(function(c){citySet.add(c);});
+    });
+    // 对已选城市，并入其所属省份的全部城市，
+    // 这样即使取消该省选中，其城市选项与已选城市依然保留
+    (selectedCities||[]).forEach(function(c){
+      var p=getProvinceOfCity(c);
+      if(p){
+        (provinceToCities[p]||[]).forEach(function(cc){citySet.add(cc);});
+      }
     });
     return Array.from(citySet).map(function(c){return {label:c,value:c};});
   }
@@ -3824,8 +3840,8 @@ loadDocuments();
   function updateRagCityTags(selectedProvinces){
     var el=window.__ragCityEl;
     if(!el) return;
-    var cityOpts=getCityOptions(selectedProvinces);
     var curCities=window.__ragCities||[];
+    var cityOpts=getCityOptions(selectedProvinces, curCities);
     var validCities=curCities.filter(function(c){
       return cityOpts.some(function(o){return o.value===c;});
     });
@@ -3846,8 +3862,8 @@ loadDocuments();
   function updateDocCityTags(selectedProvinces){
     var el=window.__docCityEl;
     if(!el) return;
-    var cityOpts=getCityOptions(selectedProvinces);
     var curCities=window.__docCities||[];
+    var cityOpts=getCityOptions(selectedProvinces, curCities);
     var validCities=curCities.filter(function(c){
       return cityOpts.some(function(o){return o.value===c;});
     });
