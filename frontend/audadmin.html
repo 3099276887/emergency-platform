@@ -10,8 +10,9 @@
   header{background:#7f1d1d;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
   header h1{font-size:18px}
   header .ops button{margin-left:10px;background:rgba(255,255,255,.15);border:0;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer}
-  .wrap{max-width:1080px;margin:24px auto;padding:0 16px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
+  header .ops button:hover{background:rgba(255,255,255,.3)}
+  .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
   .card{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:16px 18px}
   .card h3{font-size:13px;color:#6b7d89;margin-bottom:8px}
   .card .big{font-size:24px;color:#7f1d1d;font-weight:700}
@@ -19,36 +20,198 @@
   .panel{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:18px 20px;margin-bottom:18px}
   .panel h2{font-size:16px;color:#7f1d1d;margin-bottom:4px}
   .panel .sub{font-size:13px;color:#6b7d89;margin-bottom:14px}
+  .filter-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e6edf2}
+  .filter-item{display:flex;align-items:center;gap:6px}
+  .filter-item label{font-size:13px;color:#536b78;white-space:nowrap}
+  .filter-item input,
+  .filter-item select{padding:8px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit;width:140px}
+  .filter-item input:focus,
+  .filter-item select:focus{outline:none;border-color:#2563eb}
+  .btn{background:#7f1d1d;color:#fff;border:1px solid #7f1d1d;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px}
+  .btn:hover{background:#991b1b}
+  .btn-secondary{background:#fff;border:1px solid #cbd7de;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:13px;color:#1f3a52}
+  .btn-secondary:hover{background:#f5f8fa}
+  .refresh-btn{margin-left:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e6edf2}
+  th{background:#f5f8fa;color:#536b78;font-weight:600}
+  tr:hover{background:#fafbfc}
+  .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px}
+  .tag.success{background:#dcfce7;color:#166534}
+  .tag.fail{background:#fee2e2;color:#991b1b}
+  .role-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:500}
+  .role-user{background:#dbeafe;color:#1e40af}
+  .role-sysadmin{background:#fef3c7;color:#92400e}
+  .role-secadmin{background:#d1fae5;color:#065f46}
+  .role-audadmin{background:#fee2e2;color:#991b1b}
+  .pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #e6edf2}
+  .pagination-info{font-size:13px;color:#6b7d89}
+  .pagination-buttons{display:flex;gap:6px}
+  .pagination-buttons button{padding:6px 12px;border:1px solid #cbd7de;border-radius:4px;background:#fff;cursor:pointer;font-size:13px}
+  .pagination-buttons button:hover{background:#f5f8fa}
+  .pagination-buttons button:disabled{opacity:.4;cursor:not-allowed}
+  .pagination-buttons button.active{background:#7f1d1d;border-color:#7f1d1d;color:#fff}
+  .empty{text-align:center;color:#9aaab3;padding:40px 0;font-size:14px}
+  .detail-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .detail-cell:hover{white-space:normal;word-break:break-all;background:#f8fafc}
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+  .modal{background:#fff;border-radius:8px;width:90%;max-width:600px;max-height:80vh;overflow-y:auto}
+  .modal-header{padding:16px 20px;border-bottom:1px solid #e6edf2;display:flex;align-items:center;justify-content:space-between}
+  .modal-header h3{font-size:16px;color:#233}
+  .modal-close{background:none;border:0;font-size:24px;cursor:pointer;color:#6b7d89;line-height:1}
+  .modal-body{padding:20px}
+  .detail-row{display:flex;padding:8px 0;border-bottom:1px solid #f0f0f0}
+  .detail-label{width:100px;color:#6b7d89;font-size:13px;flex-shrink:0}
+  .detail-value{flex:1;font-size:13px;word-break:break-all}
+  .analytics-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .chart-card h4{font-size:14px;color:#536b78;margin-bottom:12px}
+  .bar-chart{display:flex;flex-direction:column;gap:8px}
+  .bar-item{display:flex;align-items:center;gap:8px}
+  .bar-label{width:80px;font-size:12px;color:#555}
+  .bar-container{flex:1;height:20px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+  .bar{height:100%;background:linear-gradient(90deg,#7f1d1d,#b91c1c);transition:width .3s}
+  .bar-text{width:40px;text-align:right;font-size:12px;color:#555}
   .tip{font-size:13px;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;padding:10px 12px;border-radius:6px;line-height:1.8}
   .tip b{color:#991b1b}
+  .action-bar{display:flex;align-items:center;gap:8px}
+  .export-btn{margin-left:auto}
+  @media (max-width: 768px) {
+    .filter-row{flex-direction:column;align-items:stretch}
+    .filter-item{justify-content:space-between}
+    .filter-item input, .filter-item select{flex:1}
+    .analytics-row{grid-template-columns:1fr}
+    .cards{grid-template-columns:repeat(2,1fr)}
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>应急安全综合平台 · 审计员台</h1>
-  <div class="ops"><span id="whoami"></span><button onclick="window.location.href='index.html'">进入业务台（只读）</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
+  <div class="ops"><span id="whoami"></span><button onclick="window.open('admin.html','_blank')">后台监控</button><button onclick="window.location.href='index.html'">进入业务台（只读）</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
 </header>
 <div class="wrap">
-  <div class="cards" id="readCards"></div>
+  <div class="cards" id="statCards"></div>
+
   <div class="panel">
-    <h2>审计日志查看</h2>
-    <div class="sub">全局只读留痕：谁、何时、做了什么操作。以下为预留位，审计日志将依赖平台操作流水接入。</div>
-    <p class="tip">审计记录接入规划：将在后端建立操作流水（登录 / 上传 / 删除 / 报告创建 / 敏感标记 / 用户管理），供审计员在此只读查询与导出，且<b>审计员不具备任何写权限</b>，无法掩盖操作痕迹。</p>
+    <h2>操作日志审计</h2>
+    <div class="sub">全局操作留痕：谁、何时做了什么，全程可追溯；审计员仅可读，不可篡改任何操作记录。</div>
+
+    <div class="filter-row">
+      <div class="filter-item">
+        <label>用户名：</label>
+        <input id="filterUsername" type="text" placeholder="输入用户名" onkeydown="if(event.key==='Enter') loadLogs()">
+      </div>
+      <div class="filter-item">
+        <label>动作：</label>
+        <select id="filterAction" onchange="loadLogs()">
+          <option value="">全部动作</option>
+          <option value="login">登录</option>
+          <option value="create_user">创建用户</option>
+          <option value="update_user">修改用户</option>
+          <option value="reset_password">重置密码</option>
+          <option value="upload_kb_file">上传知识库</option>
+          <option value="delete_kb_file">删除知识库</option>
+          <option value="set_sensitive">标记敏感</option>
+          <option value="create_document">创建文档</option>
+          <option value="delete_document">删除文档</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>结果：</label>
+        <select id="filterSuccess" onchange="loadLogs()">
+          <option value="">全部</option>
+          <option value="1">成功</option>
+          <option value="0">失败</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="resetFilters()">重置</button>
+      <button class="btn refresh-btn" onclick="loadLogs()">刷新</button>
+    </div>
+
+    <div class="action-bar">
+      <div class="pagination-info" id="paginationInfo"></div>
+      <button class="btn-secondary export-btn" id="exportBtn" onclick="exportLogs()">导出 CSV</button>
+    </div>
+
+    <table id="logTable">
+      <thead><tr>
+        <th>时间</th>
+        <th>用户</th>
+        <th>角色</th>
+        <th>动作</th>
+        <th>目标</th>
+        <th>结果</th>
+        <th>IP</th>
+        <th>操作</th>
+      </tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <div id="emptyTip" class="empty"></div>
+    <div class="pagination" id="pagination"></div>
   </div>
+
+  <div class="panel">
+    <h2>性能统计与异常监控</h2>
+    <div class="sub">按操作类型、结果分布的汇总分析，快速定位异常操作。</div>
+    <div class="analytics-row" id="analyticsRow">
+      <div class="chart-card">
+        <h4>按操作类型统计</h4>
+        <div id="actionChart" class="bar-chart"></div>
+      </div>
+      <div class="chart-card">
+        <h4>按用户角色统计</h4>
+        <div id="roleChart" class="bar-chart"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="panel">
     <h2>监督与制衡</h2>
     <div class="sub">三权分立下的审计视角。</div>
     <p class="tip">sysadmin 建号/配系统 → secadmin 管数据保密与授权 → audadmin 全程审计。<br>
-    任一管理动作不可被同一账号既执行又留痕回避；审计员不能修改任何人权限，只能记录与报告。</p>
+    任一管理动作不可被同一账号既执行又留痕回避；审计员不能修改任何人权限，只能记录与报告。<br>
+    <b>所有写操作已经全程留痕，包含客户端 IP 地址和操作结果，数据不可篡改，满足合规要求。</b></p>
   </div>
 </div>
+
 <script>
 (function(){
   var who = document.getElementById("whoami");
-  var cards = document.getElementById("readCards");
-  function card(k,v,s){ cards.innerHTML += "<div class='card'><h3>"+k+"</h3><div class='big'>"+v+"</div><div class='sub'>"+s+"</div></div>"; }
+  var logBody = document.getElementById("logBody");
+  var emptyTip = document.getElementById("emptyTip");
+  var pagination = document.getElementById("pagination");
+  var paginationInfo = document.getElementById("paginationInfo");
+  var statCards = document.getElementById("statCards");
+  var actionChart = document.getElementById("actionChart");
+  var roleChart = document.getElementById("roleChart");
+
+  var currentPage = 1;
+  var pageSize = 50;
+  var totalLogs = 0;
+  var allLogs = [];
+
+  var ROLE_NAMES = {user:"普通用户", sysadmin:"系统管理员", secadmin:"安全保密员", audadmin:"审计员"};
+  var ROLE_CSS = {user:"role-user", sysadmin:"role-sysadmin", secadmin:"role-secadmin", audadmin:"role-audadmin"};
+  var ACTION_LABELS = {
+    login:"登录",
+    create_user:"创建用户",
+    update_user:"修改用户",
+    reset_password:"重置密码",
+    upload_kb_file:"上传知识库",
+    delete_kb_file:"删除知识库",
+    set_sensitive:"标记敏感",
+    create_document:"创建文档",
+    retry_document:"重试文档",
+    delete_document:"删除文档"
+  };
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+
+  function formatTs(ts){
+    if(!ts) return "";
+    var dt = new Date(ts + " UTC");
+    return dt.toLocaleString("zh-CN", {timeZone:"Asia/Shanghai"});
+  }
 
   async function me(){
     var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
@@ -58,21 +221,260 @@
     return d;
   }
 
-  async function loadRead(){
-    try {
-      var r = await fetch("/api/v1/documents/stats", {headers:{Accept:"application/json"}});
-      if(r.ok){ var s = await r.json(); card("报告", s.total||s.count||"—", "只读统计"); }
-    }catch(e){}
-    try {
-      var r2 = await fetch("/api/v1/kb/stats", {headers:{Accept:"application/json"}});
-      if(r2.ok){ var s2 = await r2.json(); card("知识库文件", s2.file_count||0, "只读统计"); }
-    }catch(e){}
-    card("审计角色", "audadmin", "全局只读");
+  function statCard(k, v, sub){
+    statCards.innerHTML += "<div class='card'><h3>"+k+"</h3><div class='big'>"+v+"</div><div class='sub'>"+sub+"</div></div>";
+  }
+
+  function getFilters(){
+    return {
+      username: document.getElementById("filterUsername").value.trim() || null,
+      action: document.getElementById("filterAction").value || null,
+      success: document.getElementById("filterSuccess").value ? parseInt(document.getElementById("filterSuccess").value) : null
+    };
+  }
+
+  async function loadLogs(){
+    var filters = getFilters();
+    var params = new URLSearchParams();
+    params.set("page", currentPage);
+    params.set("page_size", pageSize);
+    if(filters.username) params.set("username", filters.username);
+    if(filters.action) params.set("action", filters.action);
+    if(filters.success !== null) params.set("success", filters.success);
+
+    var url = "/api/v1/audit/logs?" + params.toString();
+    try{
+      var r = await fetch(url, {headers:{Accept:"application/json"}});
+      if(!r.ok){
+        emptyTip.textContent = "加载失败：" + r.status;
+        logBody.innerHTML = "";
+        return;
+      }
+      var data = await r.json();
+      allLogs = data.items || [];
+      totalLogs = data.total || 0;
+
+      updateStats(data.items);
+      renderTable(data.items);
+      renderPagination(data.total, data.page, data.page_size);
+      updateAnalytics(allLogs);
+
+      if(totalLogs === 0){
+        emptyTip.textContent = "暂无操作日志";
+      }else{
+        emptyTip.textContent = "";
+      }
+    }catch(e){
+      emptyTip.textContent = "加载异常：" + e.message;
+      logBody.innerHTML = "";
+    }
+  }
+
+  function updateStats(items){
+    statCards.innerHTML = "";
+    var total = totalLogs;
+    var successCount = items.filter(function(i){ return i.success === 1; }).length;
+    var failCount = items.filter(function(i){ return i.success === 0; }).length;
+    var uniqueUsers = [...new Set(items.map(function(i){ return i.username; }))].length;
+    statCard("总日志条数", total, "累计操作记录");
+    statCard("本次成功", successCount, "当前页成功操作");
+    statCard("本次失败", failCount, "当前页异常操作");
+    statCard("操作用户", uniqueUsers, "本次页涉及用户数");
+  }
+
+  function renderTable(items){
+    if(items.length === 0){
+      logBody.innerHTML = "";
+      return;
+    }
+    var rows = items.map(function(log){
+      var successCls = log.success ? "success" : "fail";
+      var successText = log.success ? "成功" : "失败";
+      var roleCls = ROLE_CSS[log.role] || "role-user";
+      var roleText = ROLE_NAMES[log.role] || log.role;
+      var actionText = ACTION_LABELS[log.action] || log.action;
+      var targetShort = log.target && log.target.length > 20 ? log.target.slice(0,17) + "..." : log.target;
+      return "<tr data-id='"+log.id+"'>"+
+        "<td>"+esc(formatTs(log.ts))+"</td>"+
+        "<td>"+esc(log.username)+"</td>"+
+        "<td><span class='role-badge "+roleCls+"'>"+esc(roleText)+"</span></td>"+
+        "<td>"+esc(actionText)+"</td>"+
+        "<td class='detail-cell' title='"+esc(log.target)+"'>"+esc(targetShort || "—")+"</td>"+
+        "<td><span class='tag "+successCls+"'>"+successText+"</span></td>"+
+        "<td>"+esc(log.ip || "—")+"</td>"+
+        "<td><button onclick='showDetail("+log.id+")' style='padding:3px 8px;border:1px solid #cbd7de;border-radius:3px;background:#fff;cursor:pointer;font-size:12px'>详情</button></td>"+
+      "</tr>";
+    }).join("");
+    logBody.innerHTML = rows;
+  }
+
+  function renderPagination(total, page, pageSize){
+    var totalPages = Math.ceil(total / pageSize) || 1;
+    paginationInfo.textContent = "共 " + total + " 条记录，第 " + page + " / " + totalPages + " 页";
+    if(totalPages <= 1){
+      pagination.innerHTML = "";
+      return;
+    }
+    var html = "";
+    var start = Math.max(1, page - 2);
+    var end = Math.min(totalPages, page + 2);
+    var buttons = [];
+    if(page > 1) buttons.push({text:"上一页", page: page - 1, disabled: false});
+    for(var i = start; i <= end; i++){
+      buttons.push({text: String(i), page: i, active: i === page});
+    }
+    if(page < totalPages) buttons.push({text:"下一页", page: page + 1, disabled: false});
+    html = '<div class="pagination-buttons">';
+    buttons.forEach(function(b){
+      var cls = b.active ? "active" : "";
+      var dis = b.disabled ? "disabled" : "";
+      html += '<button class="'+cls+'" '+dis+' onclick="goToPage('+b.page+')">'+b.text+'</button>';
+    });
+    html += '</div>';
+    pagination.innerHTML = html;
+  }
+
+  window.goToPage = function(p){
+    currentPage = p;
+    loadLogs();
+    window.scrollTo({top:0,behavior:"smooth"});
+  };
+
+  window.resetFilters = function(){
+    document.getElementById("filterUsername").value = "";
+    document.getElementById("filterAction").value = "";
+    document.getElementById("filterSuccess").value = "";
+    currentPage = 1;
+    loadLogs();
+  };
+
+  window.showDetail = function(logId){
+    var log = allLogs.find(function(i){ return i.id === logId; });
+    if(!log) return;
+    var modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.id = "detailModal";
+    modal.onclick = function(e){ if(e.target === modal) closeDetail(); };
+    var html = '<div class="modal">'+
+      '<div class="modal-header"><h3>操作日志详情</h3><button class="modal-close" onclick="closeDetail()">&times;</button></div>'+
+      '<div class="modal-body">'+
+        '<div class="detail-row"><div class="detail-label">ID</div><div class="detail-value">'+log.id+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">时间（UTC）</div><div class="detail-value">'+esc(log.ts)+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">本地时间</div><div class="detail-value">'+esc(formatTs(log.ts))+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">用户名</div><div class="detail-value">'+esc(log.username)+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">角色</div><div class="detail-value">'+esc(ROLE_NAMES[log.role] || log.role)+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">动作</div><div class="detail-value">'+esc(ACTION_LABELS[log.action] || log.action)+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">目标对象</div><div class="detail-value">'+esc(log.target || "—")+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">详情</div><div class="detail-value">'+esc(log.detail || "—")+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">IP 地址</div><div class="detail-value">'+esc(log.ip || "—")+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">执行结果</div><div class="detail-value">'+(log.success ? "成功" : "失败")+'</div></div>'+
+      '</div></div>';
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+  };
+
+  window.closeDetail = function(){
+    var modal = document.getElementById("detailModal");
+    if(modal) modal.remove();
+  };
+
+  window.exportLogs = async function(){
+    var filters = getFilters();
+    var allExport = [];
+    var page = 1;
+    var hasMore = true;
+    var exportPageSize = 200;
+
+    var confirmExport = confirm("即将导出所有符合筛选条件的日志（最多 10000 条），是否继续？");
+    if(!confirmExport) return;
+
+    try{
+      while(hasMore && allExport.length < 10000){
+        var params = new URLSearchParams();
+        params.set("page", page);
+        params.set("page_size", exportPageSize);
+        if(filters.username) params.set("username", filters.username);
+        if(filters.action) params.set("action", filters.action);
+        if(filters.success !== null) params.set("success", filters.success);
+        var url = "/api/v1/audit/logs?" + params.toString();
+        var r = await fetch(url, {headers:{Accept:"application/json"}});
+        if(!r.ok) break;
+        var data = await r.json();
+        if(!data.items || data.items.length === 0) break;
+        allExport = allExport.concat(data.items);
+        if(data.items.length < exportPageSize || allExport.length >= data.total) break;
+        page++;
+      }
+
+      if(allExport.length === 0){
+        alert("没有符合条件的日志可导出");
+        return;
+      }
+
+      var csv = [
+        ["ID","时间(UTC)","本地时间","用户名","角色","动作","目标对象","详情","IP","结果"].join(","),
+      ].concat(allExport.map(function(log){
+        return [
+          log.id,
+          log.ts,
+          formatTs(log.ts).replace(/,/g," "),
+          log.username,
+          log.role,
+          log.action,
+          (log.target || "").replace(/,/g,";").replace(/\n/g," "),
+          (log.detail || "").replace(/,/g,";").replace(/\n/g," "),
+          log.ip || "",
+          log.success ? "成功" : "失败"
+        ].map(function(field){ return '"' + String(field).replace(/"/g,'""') + '"'; }).join(",");
+      })).join("\n");
+
+      var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "operation_log_" + new Date().toISOString().slice(0,10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }catch(e){
+      alert("导出失败：" + e.message);
+    }
+  };
+
+  function updateAnalytics(logs){
+    var actionCounts = {};
+    var roleCounts = {};
+    logs.forEach(function(log){
+      actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+      roleCounts[log.role] = (roleCounts[log.role] || 0) + 1;
+    });
+
+    renderBarChart(actionChart, actionCounts, ACTION_LABELS);
+    renderBarChart(roleChart, roleCounts, ROLE_NAMES);
+  }
+
+  function renderBarChart(container, counts, labels){
+    var entries = Object.entries(counts).sort(function(a,b){ return b[1] - a[1]; });
+    if(entries.length === 0){
+      container.innerHTML = '<div style="text-align:center;color:#999;padding:20px">暂无数据</div>';
+      return;
+    }
+    var max = Math.max.apply(null, entries.map(function(e){ return e[1]; }));
+    var html = entries.map(function([key, count]){
+      var label = labels[key] || key;
+      var percent = max > 0 ? (count / max * 100) : 0;
+      return '<div class="bar-item">' +
+        '<div class="bar-label">' + esc(label) + '</div>' +
+        '<div class="bar-container"><div class="bar" style="width:' + percent + '%"></div></div>' +
+        '<div class="bar-text">' + count + '</div>' +
+      '</div>';
+    }).join("");
+    container.innerHTML = html;
   }
 
   who.textContent = "审计员";
-  me().then(function(d){ if(!d) return; who.textContent = "审计员："+d.username; loadRead(); });
-  loadRead();
+  me().then(function(d){ if(!d) return; who.textContent = "审计员："+d.username; loadLogs(); });
 })();
 </script>
 </body>
