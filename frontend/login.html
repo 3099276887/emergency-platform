@@ -14,6 +14,10 @@
   label{display:block;font-size:13px;color:#536b78;margin:16px 0 6px}
   input{width:100%;padding:11px 12px;border:1px solid #cbd7de;border-radius:4px;font:inherit;font-size:14px}
   input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 1px #2563eb}
+  .pwd-wrap{position:relative}
+  .pwd-wrap input{padding-right:40px}
+  .pwd-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;padding:6px;color:#8b9aa3;line-height:0;display:flex;align-items:center}
+  .pwd-toggle:hover{color:#2563eb}
   button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:4px;background:#123b5d;color:#fff;font-size:15px;cursor:pointer}
   button:hover{background:#1b4e79}
   button:disabled{background:#9aaab3;cursor:not-allowed}
@@ -37,7 +41,15 @@
   <input type="text" id="username" autocomplete="username" placeholder="请输入账号" autofocus>
 
   <label>密码</label>
-  <input type="password" id="password" autocomplete="current-password" placeholder="请输入密码">
+  <div class="pwd-wrap">
+    <input type="password" id="password" autocomplete="current-password" placeholder="请输入密码">
+    <button type="button" class="pwd-toggle" id="pwdToggle" title="显示/隐藏密码" aria-label="显示/隐藏密码">
+      <svg id="pwdEye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+  </div>
 
   <button id="loginBtn" type="button">登 录</button>
 
@@ -118,6 +130,21 @@ async function doLogin(){
 loginBtn.onclick = doLogin;
 passwordEl.addEventListener("keydown", function(e){ if(e.key === "Enter") doLogin(); });
 usernameEl.addEventListener("keydown", function(e){ if(e.key === "Enter") passwordEl.focus(); });
+
+// 密码显隐切换
+(function(){
+  var input = passwordEl;
+  var btn = document.getElementById("pwdToggle");
+  var eye = document.getElementById("pwdEye");
+  btn.addEventListener("click", function(){
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    // 眼睛图标切换：隐藏时显示划线的闭合眼睛
+    eye.innerHTML = show
+      ? '<line x1="2" y1="2" x2="22" y2="22"></line><path d="M10.6 3.5A11.2 11.2 0 0 1 12 3c7 0 11 7 11 7a18 18 0 0 1-3.4 4.2M6.6 6.6A18 18 0 0 0 1 12s4 7 11 7a11 11 0 0 0 3.4-.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path>'
+      : '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle>';
+  });
+})();
 </script>
 
 </body>

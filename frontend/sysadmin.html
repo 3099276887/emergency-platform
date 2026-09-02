@@ -23,6 +23,10 @@
   .field label{font-size:13px;color:#536b78;margin-bottom:6px;display:block}
   .field input,.field select{width:100%;padding:9px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit;font-size:14px}
   .field input:focus,.field select:focus{outline:none;border-color:#2563eb}
+  .pwd-wrap{position:relative}
+  .pwd-wrap input{padding-right:38px}
+  .pwd-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;padding:6px;color:#8b9aa3;line-height:0;display:flex;align-items:center}
+  .pwd-toggle:hover{color:#2563eb}
   .field.full{grid-column:1 / -1}
   .msg{font-size:13px}
   .msg.ok{color:#15803d}
@@ -65,11 +69,17 @@
         </div>
         <div class="field">
           <label>初始密码 *</label>
-          <input type="password" id="password" placeholder="至少 8 位" maxlength="128">
+          <div class="pwd-wrap">
+            <input type="password" id="password" placeholder="至少 8 位" maxlength="128">
+            <button type="button" class="pwd-toggle" title="显示/隐藏密码"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
         </div>
         <div class="field">
           <label>确认密码 *</label>
-          <input type="password" id="password2" placeholder="再次输入" maxlength="128">
+          <div class="pwd-wrap">
+            <input type="password" id="password2" placeholder="再次输入" maxlength="128">
+            <button type="button" class="pwd-toggle" title="显示/隐藏密码"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
         </div>
       </div>
       <div style="margin-top:12px">
@@ -147,6 +157,16 @@ me().then(function(d){
   if(d.role !== "sysadmin"){ location.href = "index.html"; return; }
   who.textContent = "系统管理员：" + d.username;
 });
+
+// 密码显隐切换
+(function(){
+  document.querySelectorAll(".pwd-toggle").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var input = btn.parentNode.querySelector("input[type=password], input[type=text]");
+      input.type = input.type === "password" ? "text" : "password";
+    });
+  });
+})();
 </script>
 </body>
 </html>
