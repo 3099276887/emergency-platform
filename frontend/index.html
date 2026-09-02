@@ -463,14 +463,13 @@ body.side-collapsed aside .law-subnav{display:none}
 }
 .header-switch:hover{background:rgba(255,255,255,.28)}
 
-/* 角色导航按钮：与切换账号统一风格，左边框保留原角色色 */
+/* 角色导航按钮：与切换账号统一风格，按钮底色保留原角色色 */
 .role-link{
   padding:6px 10px;border:1px solid rgba(255,255,255,.35);
-  border-left-width:3px;background:rgba(255,255,255,.12);color:#fff;
-  font-size:13px;border-radius:4px;cursor:pointer;white-space:nowrap;
-  text-decoration:none;display:inline-block;
+  color:#fff;font-size:13px;border-radius:4px;cursor:pointer;
+  white-space:nowrap;text-decoration:none;display:inline-block;
 }
-.role-link:hover{background:rgba(255,255,255,.28)}
+.role-link:hover{filter:brightness(1.2)}
 
 /* 批量删除 */
 .kb-batch-bar{
@@ -812,7 +811,7 @@ body.side-collapsed aside .law-subnav{display:none}
     a.textContent = label;
     a.href = href;
     a.className = "role-link";
-    a.style.borderLeftColor = COLORS[role];
+    a.style.backgroundColor = COLORS[role];
     return a;
   }
   var ROLE_LINKS = {
