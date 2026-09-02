@@ -463,13 +463,14 @@ body.side-collapsed aside .law-subnav{display:none}
 }
 .header-switch:hover{background:rgba(255,255,255,.28)}
 
-/* 角色导航按钮：与切换账号统一风格，半透明颜色背景标识角色 */
+/* 角色导航按钮：与切换账号统一风格，左边框保留原角色色 */
 .role-link{
-  padding:6px 10px;border:1px solid;color:#fff;font-size:13px;
-  border-radius:4px;cursor:pointer;white-space:nowrap;
-  text-decoration:none;display:inline-block;transition:opacity .15s;
+  padding:6px 10px;border:1px solid rgba(255,255,255,.35);
+  border-left-width:3px;background:rgba(255,255,255,.12);color:#fff;
+  font-size:13px;border-radius:4px;cursor:pointer;white-space:nowrap;
+  text-decoration:none;display:inline-block;
 }
-.role-link:hover{opacity:.8}
+.role-link:hover{background:rgba(255,255,255,.28)}
 
 /* 批量删除 */
 .kb-batch-bar{
