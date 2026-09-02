@@ -11,20 +11,22 @@
   header h1{font-size:18px}
   header .ops button{margin-left:10px;background:rgba(255,255,255,.15);border:0;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer}
   header .ops button:hover{background:rgba(255,255,255,.3)}
-  .wrap{max-width:1080px;margin:24px auto;padding:0 16px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
-  .card{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:16px 18px}
-  .card h3{font-size:13px;color:#6b7d89;margin-bottom:8px}
-  .card .big{font-size:26px;color:#123b5d;font-weight:700}
-  .card .sub{font-size:12px;color:#9aaab3;margin-top:4px}
+  .wrap{max-width:1000px;margin:24px auto;padding:0 16px}
   .panel{background:#fff;border:1px solid #d9e2e8;border-radius:8px;padding:18px 20px;margin-bottom:18px}
   .panel h2{font-size:16px;color:#123b5d;margin-bottom:4px}
   .panel .sub{font-size:13px;color:#6b7d89;margin-bottom:14px}
   .btn{padding:9px 18px;border:0;border-radius:4px;background:#123b5d;color:#fff;cursor:pointer;font-size:14px;text-decoration:none;display:inline-block;margin-right:10px}
+  .btn:hover{background:#1b4e79}
   .btn.gray{background:#e5ebf0;color:#1f3a52}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e6edf2}
-  th{background:#f5f8fa;color:#536b78;font-weight:600}
+  .btn.gray:hover{background:#d5dfe7}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field label{font-size:13px;color:#536b78;margin-bottom:6px;display:block}
+  .field input,.field select{width:100%;padding:9px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit;font-size:14px}
+  .field input:focus,.field select:focus{outline:none;border-color:#2563eb}
+  .field.full{grid-column:1 / -1}
+  .msg{font-size:13px}
+  .msg.ok{color:#15803d}
+  .msg.err{color:#b6372e}
   .tip{font-size:13px;color:#3a6079;background:#f0f6fc;border:1px solid #d3e4f2;padding:10px 12px;border-radius:6px;line-height:1.7}
 </style>
 </head>
@@ -35,52 +37,116 @@
 </header>
 <div class="wrap">
   <div class="panel">
-    <h2>后台监控</h2>
-    <div class="sub">实时系统资源与关键进程（同源只读）。</div>
-    <div class="cards" id="monitorCards"></div>
-    <div id="monitorExtra"></div>
+    <h2>后台管理</h2>
+    <div class="sub">进入后台管理界面，进行系统监控、审计等管理操作。</div>
+    <a class="btn" href="admin.html">前往后台管理 →</a>
+  </div>
+  <div class="panel">
+    <h2>创建账号</h2>
+    <div class="sub">为平台成员开通账号。默认下发普通用户；三员账号请按安全管理规定分配。</div>
+    <form id="createForm" autocomplete="off">
+      <div class="grid">
+        <div class="field">
+          <label>登录账号 *</label>
+          <input type="text" id="username" placeholder="2-64 位，字母/数字/下划线" maxlength="64">
+        </div>
+        <div class="field">
+          <label>姓名</label>
+          <input type="text" id="fullname" placeholder="真实姓名（选填）" maxlength="64">
+        </div>
+        <div class="field">
+          <label>角色 *</label>
+          <select id="role">
+            <option value="user">普通用户（默认）</option>
+            <option value="sysadmin">系统管理员</option>
+            <option value="secadmin">安全保密员</option>
+            <option value="audadmin">审计员</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>初始密码 *</label>
+          <input type="password" id="password" placeholder="至少 8 位" maxlength="128">
+        </div>
+        <div class="field">
+          <label>确认密码 *</label>
+          <input type="password" id="password2" placeholder="再次输入" maxlength="128">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn" id="createBtn" type="submit">创建用户</button>
+        <span class="msg" id="createMsg"></span>
+      </div>
+    </form>
   </div>
   <div class="panel">
     <h2>用户管理</h2>
-    <div class="sub">创建普通用户与三员账号、停用/启用、重置密码、调整角色。</div>
-    <a class="btn" href="users.html">前往用户管理 →</a>
-  </div>
-  <div class="panel">
-    <h2>系统配置</h2>
-    <div class="sub">模型、任务模板、敏感参数配置（预留）。</div>
-    <p class="tip">系统配置模块规划中：后续在此接模型切换 / 任务模板 / 全局参数。当前不以明文暴露敏感参数。</p>
+    <div class="sub">查看全部用户、启用/停用、重置密码或调整角色。</div>
+    <a class="btn" href="users.html">前往完整用户管理 →</a>
   </div>
 </div>
 <script>
-(function(){
-  var who = document.getElementById("whoami");
+var ROLE_NAMES = { user:"普通用户", sysadmin:"系统管理员", secadmin:"安全保密员", audadmin:"审计员" };
+var who = document.getElementById("whoami");
+var createMsg = document.getElementById("createMsg");
 
-  async function me(){
-    var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
-    if(r.status === 401){ location.href="login.html"; return null; }
-    var d = await r.json();
-    if(d.role !== "sysadmin"){ location.href = "index.html"; return null; }
-    return d;
+function showMsg(el, text, ok){
+  el.textContent = text;
+  el.className = "msg " + (ok ? "ok" : "err");
+  if(text && ok) setTimeout(function(){ el.textContent=""; el.className="msg"; }, 3000);
+}
+
+async function me(){
+  var r = await fetch("/api/v1/auth/me", { headers: { "Accept":"application/json" }});
+  if(r.status === 401 || !r.ok) return null;
+  return r.json();
+}
+
+document.getElementById("createForm").addEventListener("submit", async function(ev){
+  ev.preventDefault();
+  var username = document.getElementById("username").value.trim();
+  var fullname = document.getElementById("fullname").value.trim();
+  var role = document.getElementById("role").value;
+  var password = document.getElementById("password").value;
+  var password2 = document.getElementById("password2").value;
+
+  if(!username){ showMsg(createMsg, "请输入登录账号", false); return; }
+  if(!/^[A-Za-z0-9_]{2,64}$/.test(username)){ showMsg(createMsg, "账号需为 2-64 位字母/数字/下划线", false); return; }
+  if(password.length < 8){ showMsg(createMsg, "密码至少 8 位", false); return; }
+  if(password !== password2){ showMsg(createMsg, "两次密码不一致", false); return; }
+
+  var btn = document.getElementById("createBtn");
+  btn.disabled = true;
+  try {
+    var resp = await fetch("/api/v1/users", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify({ username: username, full_name: fullname, role: role, password: password })
+    });
+    var body = null;
+    var text = await resp.text();
+    if(text){ try{ body = JSON.parse(text); }catch(e){} }
+    if(!resp.ok){
+      var detail = (body && body.detail) ? body.detail : ("HTTP " + resp.status);
+      showMsg(createMsg, "创建失败：" + detail, false);
+      return;
+    }
+    showMsg(createMsg, "已创建账号 " + body.username + "（" + ROLE_NAMES[body.role] + "）", true);
+    document.getElementById("username").value = "";
+    document.getElementById("fullname").value = "";
+    document.getElementById("password").value = "";
+    document.getElementById("password2").value = "";
+  } catch(e){
+    showMsg(createMsg, "无法连接后端，请检查网关", false);
+  } finally {
+    btn.disabled = false;
   }
+});
 
-  async function loadMonitor(){
-    var r = await fetch("/api/v1/monitor", {headers:{Accept:"application/json"}});
-    if(r.status === 403){ document.getElementById("monitorCards").innerHTML='<p class="sub">当前角色无权查看后台监控</p>'; return; }
-    if(!r.ok) return;
-    var m = await r.json();
-    var cards = "";
-    function big(label, v, sub){ return "<div class='card'><h3>"+label+"</h3><div class='big'>"+v+"</div><div class='sub'>"+sub+"</div></div>"; }
-    if(m.cpu) cards += big("CPU", (m.cpu.usage!=null?Math.round(m.cpu.usage):"N/A")+"%", "核心 "+(m.cpu.cores||""));
-    if(m.memory) cards += big("内存", Math.round(m.memory.used_percent||0)+"%", "已用/总 "+(m.memory.used_gb||0)+"/"+(m.memory.total_gb||0)+" GB");
-    if(m.disk) cards += big("磁盘", Math.round(m.disk.used_percent||0)+"%", "已用/总 "+(m.disk.used_gb||0)+"/"+(m.disk.total_gb||0)+" GB");
-    cards += big("关键进程", "见下表", "服务健康度");
-    document.getElementById("monitorCards").innerHTML = cards;
-  }
-
-  who.textContent = "系统管理员";
-  me().then(function(d){ if(!d) return; who.textContent = "系统管理员："+d.username; });
-  loadMonitor();
-})();
+me().then(function(d){
+  if(!d){ location.href = "login.html"; return; }
+  if(d.role !== "sysadmin"){ location.href = "index.html"; return; }
+  who.textContent = "系统管理员：" + d.username;
+});
 </script>
 </body>
 </html>
