@@ -29,18 +29,44 @@
   td button.del:hover{border-color:#dc2626;color:#dc2626}
   td button.mark:hover{border-color:#14532d;color:#14532d}
   .tip{font-size:13px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 12px;border-radius:6px;line-height:1.7}
+  .kb-filter{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;align-items:center}
+  .kb-filter-tabs{display:inline-flex;gap:2px;background:#f0f0f0;border-radius:8px;padding:2px}
+  .kb-filter-tab{display:inline-block;padding:6px 14px;border-radius:6px;font-size:13px;color:#555;cursor:pointer;user-select:none;transition:all .15s}
+  .kb-filter-tab:hover{color:#333}
+  .kb-filter-tab.active{background:#fff;color:#14532d;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+  .kb-filter input,.kb-filter select{width:auto;flex:0 1 auto;padding:9px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit}
+  .kb-filter button{flex:0 0 auto}
+  .btn-secondary{background:#fff;border:1px solid #cbd7de;border-radius:4px;padding:8px 14px;cursor:pointer;font-size:13px;color:#1f3a52}
+  .btn-secondary:hover{background:#f5f8fa}
 </style>
 </head>
 <body>
 <header>
   <h1>应急安全综合平台 · 安全保密员台</h1>
-  <div class="ops"><span id="whoami"></span><button onclick="window.location.href='index.html'">进入业务台</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
+  <div class="ops"><span id="whoami"></span><button onclick="window.open('admin.html','_blank')">后台监控</button><button onclick="window.location.href='index.html'">进入业务台</button><button onclick="window.logoutAuth();location.href='login.html'">退出登录</button></div>
 </header>
 <div class="wrap">
   <div class="cards" id="statCards"></div>
   <div class="panel">
     <h2>数据保密台账 · 敏感文件治理</h2>
-    <div class="sub">安全保密员专属：可标记敏感文件、撤销标记、并执行知识库文件删除（普通用户与系统管理员均不可删除）。</div>
+    <div class="sub">安全保密员专属：可标记敏感文件、撤销标记、并执行知识库文件删除。</div>
+    <div class="kb-filter">
+      <span class="kb-filter-tabs" id="kbFilterTabs">
+        <span class="kb-filter-tab active" data-type="">全部</span>
+        <span class="kb-filter-tab" data-type="国家法律">国家法律</span>
+        <span class="kb-filter-tab" data-type="行政法规">行政法规</span>
+        <span class="kb-filter-tab" data-type="地方法规">地方法规</span>
+        <span class="kb-filter-tab" data-type="暂定">暂定</span>
+      </span>
+      <input id="kbKeywordInput" type="text" placeholder="文件名关键字">
+      <select id="kbStatusFilter">
+        <option value="">全部状态</option>
+        <option value="building">建立中</option>
+        <option value="ready">就绪</option>
+        <option value="failed">失败</option>
+      </select>
+      <button id="kbSearchBtn" class="btn-secondary">搜索</button>
+    </div>
     <table id="fileTable"></table>
     <div id="emptyTip" style="color:#9aaab3;padding:14px 0;font-size:13px"></div>
   </div>
@@ -71,9 +97,24 @@
   function stat(k, v, sub){ document.getElementById("statCards").innerHTML += "<div class='card'><h3>"+k+"</h3><div class='big'>"+v+"</div><div class='sub'>"+sub+"</div></div>"; }
 
   async function loadFiles(){
-    var r = await fetch("/api/v1/files", {headers:{Accept:"application/json"}});
+    var keywordInput=document.getElementById("kbKeywordInput");
+    var statusInput=document.getElementById("kbStatusFilter");
+    var keyword=keywordInput ? keywordInput.value.trim() : "";
+    var statusValue=statusInput ? statusInput.value : "";
+    var activeTab=document.querySelector(".kb-filter-tab.active");
+    var filterFileTypes=activeTab && activeTab.dataset.type ? [activeTab.dataset.type] : [];
+
+    var params=new URLSearchParams();
+    if(keyword) params.set("keyword",keyword);
+    filterFileTypes.forEach(function(v){params.append("file_type",v);});
+    if(statusValue) params.set("status",statusValue);
+    var query=params.toString();
+    var url="/api/v1/files"+(query ? "?"+query : "");
+
+    var r = await fetch(url, {headers:{Accept:"application/json"}});
     if(!r.ok){ table.innerHTML=''; document.getElementById("emptyTip").textContent="加载失败："+r.status; return; }
     var list = await r.json();
+    document.getElementById("statCards").innerHTML="";
     var sens = list.filter(function(f){ return f.sensitive; });
     stat("文件总数", list.length, "知识库登记文件");
     stat("敏感文件", sens.length, "已标记 / 需重点把控");
@@ -120,6 +161,28 @@
   who.textContent = "安全保密员";
   me().then(function(d){ if(!d) return; who.textContent = "安全保密员："+d.username; loadFiles(); });
   loadFiles();
+
+  // 搜索按钮
+  var kbSearchBtn=document.getElementById("kbSearchBtn");
+  if(kbSearchBtn) kbSearchBtn.onclick=loadFiles;
+
+  // 回车触发搜索
+  var kbKeywordInput=document.getElementById("kbKeywordInput");
+  if(kbKeywordInput) kbKeywordInput.onkeydown=function(e){ if(e.key==="Enter") loadFiles(); };
+
+  // 分类标签切换
+  (function initKbFilterTabs(){
+    document.querySelectorAll(".kb-filter-tabs").forEach(function(filter){
+      var tabs=filter.querySelectorAll(".kb-filter-tab");
+      tabs.forEach(function(tab){
+        tab.onclick=function(){
+          tabs.forEach(function(t){t.classList.remove("active");});
+          this.classList.add("active");
+          if(typeof loadFiles==="function") loadFiles();
+        };
+      });
+    });
+  })();
 })();
 </script>
 </body>
