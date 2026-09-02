@@ -445,6 +445,14 @@ body.side-collapsed aside .law-subnav{display:none}
 .ai-status-dot.busy{background:#ff9800}
 .ai-status-dot.offline{background:#f44336}
 
+/* 头部切换账号按钮 */
+.header-switch{
+  margin-left:14px;padding:6px 12px;border:1px solid rgba(255,255,255,.35);
+  background:rgba(255,255,255,.12);color:#fff;font-size:13px;
+  border-radius:4px;cursor:pointer;white-space:nowrap;
+}
+.header-switch:hover{background:rgba(255,255,255,.28)}
+
 /* 批量删除 */
 .kb-batch-bar{
   display:inline-flex;align-items:center;gap:8px;padding:0;border:none;margin:0;min-height:auto;
@@ -473,6 +481,7 @@ body.side-collapsed aside .law-subnav{display:none}
   <span class="ai-status-dot offline" id="aiStatusDot"></span>
   <span id="aiStatusText">无法连接</span>
 </span>
+<button id="switchAccountBtn" class="header-switch" title="退出当前账号并重新登录">切换账号</button>
 </header>
 
 <div class="layout">
@@ -797,6 +806,17 @@ body.side-collapsed aside .law-subnav{display:none}
       nav.appendChild(btn(cfg.label, cfg.href, cfg.color));
     }
   }).catch(function(){});
+})();
+</script>
+<script>
+// 切换账号：清空凭证后回登录页
+(function(){
+  var el = document.getElementById("switchAccountBtn");
+  if(el) el.onclick = function(){
+    if(window.logoutAuth) window.logoutAuth();
+    else { try{ localStorage.removeItem("sferag_jwt_token"); }catch(e){} }
+    location.href = "login.html";
+  };
 })();
 </script>
 <script>
