@@ -285,6 +285,19 @@ body.side-collapsed aside .law-subnav{display:none}
 .chat-msg.user .bubble{background:#fff;color:#1a1a1a;border:1px solid #e5e5e5;border-top-right-radius:3px}
 .chat-msg.user .bubble.has-img{padding:0;border:none;box-shadow:none}
 .chat-msg.ai .bubble{background:transparent;border:none;border-radius:5px;color:#233746;max-width:100%}
+/* 参考检索材料样式 */
+.rag-materials{margin:0 auto 14px;width:70%;max-width:900px;font-size:13px;border:1px solid #d9e2e8;border-radius:6px;overflow:hidden}
+.rag-materials summary{padding:8px 14px;cursor:pointer;background:#f5f8fa;color:#536b78;font-weight:500;user-select:none}
+.rag-materials summary:hover{background:#edf2f6}
+.rag-materials-inner{padding:8px 14px 4px;background:#fafbfc}
+.rag-materials-item{margin-bottom:8px;padding:6px 0;border-bottom:1px solid #e6edf2;line-height:1.6}
+.rag-materials-item:last-child{border-bottom:none;margin-bottom:0}
+.rag-materials-item .rm-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.rag-materials-item .rm-num{display:inline-block;background:#7f1d1d;color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.rag-materials-item .rm-file{color:#7f1d1d;font-weight:500;font-size:12px;cursor:pointer;text-decoration:none}
+.rag-materials-item .rm-file:hover{text-decoration:underline}
+.rag-materials-item .rm-text{font-size:12px;color:#536b78;display:none;margin-top:4px;padding:6px 8px;background:#fff;border:1px solid #e6edf2;border-radius:4px;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto}
+.rag-materials-item .rm-text.open{display:block}
 .chat-msg-img{
   max-width:320px;max-height:240px;border-radius:6px;display:block;margin-bottom:4px;
   object-fit:contain;background:#f5f5f5;cursor:pointer;
@@ -2263,6 +2276,56 @@ function renderChat(){
     };
   });
 
+  // 如果上一轮有 RAG 检索材料，在最后一条回答下方显示参考材料区块
+  const ragMaterials = window.__lastRagMaterials;
+  if(ragMaterials && Array.isArray(ragMaterials) && ragMaterials.length>0){
+    const container=document.createElement("div");
+    container.className="rag-materials";
+    container.innerHTML=`
+      <details open>
+        <summary>参考检索材料（${ragMaterials.length} 条）</summary>
+        <div class="rag-materials-inner">
+        ${ragMaterials.map((mat, idx)=>{
+          // mat 格式为 "[1] 文件名...\n内容..."，提取编号和文件名
+          const firstLineBreak = mat.indexOf("\n");
+          let header = mat;
+          let text = "";
+          if(firstLineBreak > 0){
+            header = mat.slice(0, firstLineBreak);
+            text = mat.slice(firstLineBreak + 1);
+          }
+          // 提取文件名：格式 "[1] 文件名.docx"
+          const numMatch = header.match(/^\[(\d+)\]\s+(.*)$/);
+          const num = numMatch ? numMatch[1] : (idx+1);
+          const filename = numMatch ? numMatch[2] : header;
+          return `
+            <div class="rag-materials-item">
+              <div class="rm-header">
+                <span class="rm-num">${num}</span>
+                <span class="rm-file" data-idx="${idx}">${escapeHtml(filename)}</span>
+              </div>
+              <div class="rm-text" data-idx="${idx}">${escapeHtml(text)}</div>
+            </div>
+          `;
+        }).join("")}
+        </div>
+      </details>
+    `;
+    log.appendChild(container);
+    // 点击文件名展开/折叠
+    container.querySelectorAll(".rm-file").forEach(el=>{
+      el.onclick=function(){
+        const idx = this.getAttribute("data-idx");
+        const textEl = container.querySelector(`.rm-text[data-idx="${idx}"]`);
+        if(textEl.classList.contains("open")){
+          textEl.classList.remove("open");
+        }else{
+          textEl.classList.add("open");
+        }
+      };
+    });
+  }
+
   log.scrollTop=log.scrollHeight;
 }
 
@@ -2419,6 +2482,8 @@ async function startAiStream(continuing){
 
   let fullAnswer= continuing ? (currentAiBubble ? currentAiBubble.textContent : "") : "";
   let buffer="";
+  let currentRagMaterials = null; // 接收后端下发的 RAG 检索材料，仅本轮展示用，不进历史
+  window.__lastRagMaterials = null; // 上一轮如果有，先清掉
 
   try{
     const response=await fetch(
@@ -2475,6 +2540,11 @@ async function startAiStream(continuing){
 
       try{
         const chunk=JSON.parse(data);
+        // 检查是否包含 rag_materials（后端在下发 [DONE] 前单独发的一条）
+        if(chunk.rag_materials){
+          currentRagMaterials = chunk.rag_materials;
+          return; // 不拼入 content，不追加到气泡
+        }
         const text=
           chunk.choices &&
           chunk.choices[0] &&
@@ -2530,6 +2600,7 @@ async function startAiStream(continuing){
     }
 
     saveChat();
+    window.__lastRagMaterials = currentRagMaterials; // 供 renderChat 展示参考检索材料
 
   }catch(error){
     if(error.name === "AbortError"){
