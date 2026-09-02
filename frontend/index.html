@@ -457,11 +457,20 @@ body.side-collapsed aside .law-subnav{display:none}
 
 /* 头部切换账号按钮 */
 .header-switch{
-  margin-left:14px;padding:6px 12px;border:1px solid rgba(255,255,255,.35);
+  margin-left:8px;padding:6px 12px;border:1px solid rgba(255,255,255,.35);
   background:rgba(255,255,255,.12);color:#fff;font-size:13px;
   border-radius:4px;cursor:pointer;white-space:nowrap;
 }
 .header-switch:hover{background:rgba(255,255,255,.28)}
+
+/* 角色导航按钮：与切换账号统一风格，带颜色左边框 */
+.role-link{
+  margin-left:0;padding:6px 10px;border:1px solid rgba(255,255,255,.35);
+  border-left-width:3px;background:rgba(255,255,255,.12);color:#fff;
+  font-size:13px;border-radius:4px;cursor:pointer;white-space:nowrap;
+  text-decoration:none;display:inline-block;
+}
+.role-link:hover{background:rgba(255,255,255,.28)}
 
 /* 批量删除 */
 .kb-batch-bar{
@@ -490,7 +499,7 @@ body.side-collapsed aside .law-subnav{display:none}
   <span class="ai-status-dot offline" id="aiStatusDot"></span>
   <span id="aiStatusText">无法连接</span>
 </span>
-<span id="roleNav" style="display:inline-flex;gap:6px"></span>
+<span id="roleNav" style="display:inline-flex;gap:4px"></span>
 <button id="switchAccountBtn" class="header-switch" title="退出当前账号并重新登录">切换账号</button>
 </header>
 
@@ -797,24 +806,26 @@ body.side-collapsed aside .law-subnav{display:none}
 // 角色化导航：仅三员显示各自专属界面入口，普通用户不显示
 (function(){
   var nav = document.getElementById("roleNav");
-  function btn(label, href, color){
+  var COLORS = {sysadmin:"#c2410c", secadmin:"#15803d", audadmin:"#b91c1c"};
+  function btn(label, href, role){
     var a = document.createElement("a");
     a.textContent = label;
     a.href = href;
-    a.style.cssText = "text-decoration:none;font-size:12px;padding:6px 12px;border-radius:4px;color:#fff;background:"+color+";cursor:pointer;display:inline-block";
+    a.className = "role-link";
+    a.style.borderLeftColor = COLORS[role];
     return a;
   }
   var ROLE_LINKS = {
-    sysadmin: { label:"管理员台", href:"sysadmin.html", color:"#c2410c" },
-    secadmin: { label:"安全保密台", href:"secadmin.html", color:"#15803d" },
-    audadmin: { label:"审计台", href:"audadmin.html", color:"#b91c1c" }
+    sysadmin: { label:"管理员台", href:"sysadmin.html" },
+    secadmin: { label:"安全保密台", href:"secadmin.html" },
+    audadmin: { label:"审计台", href:"audadmin.html" }
   };
   fetch("/api/v1/auth/me", { headers:{Accept:"application/json"} }).then(function(r){
     return r.ok ? r.json() : null;
   }).then(function(me){
     if(me && ROLE_LINKS[me.role]){
       var cfg = ROLE_LINKS[me.role];
-      nav.appendChild(btn(cfg.label, cfg.href, cfg.color));
+      nav.appendChild(btn(cfg.label, cfg.href, me.role));
     }
   }).catch(function(){});
 })();
