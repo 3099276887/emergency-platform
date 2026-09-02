@@ -251,7 +251,15 @@ textarea{min-height:220px;resize:vertical;line-height:1.6}
 #navToggle svg{width:20px;height:20px;fill:currentColor}
 aside{transition:width .2s ease;overflow-x:hidden}
 main{transition:margin-left .2s ease}
-aside button .nav-label{white-space:nowrap}
+aside button .nav-label{
+  white-space:nowrap;
+  opacity:1;
+  transition:opacity .14s ease .14s;
+}
+body.side-collapsed aside button .nav-label{
+  opacity:0;
+  transition:opacity .05s ease;
+}
 body.side-collapsed aside{width:64px;padding:16px 6px}
 body.side-collapsed main{margin-left:64px}
 body.side-collapsed aside button{font-size:0;text-align:center;padding:14px 0}
