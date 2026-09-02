@@ -595,6 +595,7 @@ body.side-collapsed aside .law-subnav{display:none}
           <span class="kb-filter-tab" data-type="国家法律">国家法律</span>
           <span class="kb-filter-tab" data-type="行政法规">行政法规</span>
           <span class="kb-filter-tab" data-type="地方法规">地方法规</span>
+          <span class="kb-filter-tab" data-type="暂定">暂定</span>
         </span>
         <input id="kbKeywordInput" type="text" placeholder="文件名关键字">
         <select id="kbStatusFilter">
@@ -1185,6 +1186,7 @@ function knowledgePage(){
           <span class="kb-filter-tab" data-type="国家法律">国家法律</span>
           <span class="kb-filter-tab" data-type="行政法规">行政法规</span>
           <span class="kb-filter-tab" data-type="地方法规">地方法规</span>
+          <span class="kb-filter-tab" data-type="暂定">暂定</span>
         </span>
         <input id="kbKeywordInput" type="text" placeholder="文件名关键字">
         <select id="kbStatusFilter">
@@ -3598,6 +3600,8 @@ function initKbFilterTabs(){
       tab.onclick=function(){
         tabs.forEach(function(t){t.classList.remove("active");});
         this.classList.add("active");
+        // 点击分类立即按新分类刷新，无需再点“搜索”
+        if(typeof loadKnowledgeFiles==="function"){ loadKnowledgeFiles(); }
       };
     });
   });
