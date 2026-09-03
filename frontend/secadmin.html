@@ -49,7 +49,7 @@
   <div class="cards" id="statCards"></div>
   <div class="panel">
     <h2>数据保密台账 · 敏感文件治理</h2>
-    <div class="sub">安全保密员专属：可标记敏感文件、撤销标记；知识库文件删除已开放给 user/sysadmin/secadmin。</div>
+    <div class="sub">安全保密员专属：敏感标记/撤销标记。</div>
     <div class="kb-filter">
       <span class="kb-filter-tabs" id="kbFilterTabs">
         <span class="kb-filter-tab active" data-type="">全部</span>
@@ -73,10 +73,10 @@
   <div class="panel">
     <h2>权限治理视图</h2>
     <div class="sub">当前权限矩阵：普通用户禁用后台监控/用户管理/审计；三员各司其职。</div>
-    <p class="tip">· user 普通用户：业务全功能，禁监控/用户管理/系统配置/审计日志<br>
-    · sysadmin 系统管理员：业务 + 用户管理 + 系统配置 + 后台监控 + 知识库文件删除（禁审计日志）<br>
-    · secadmin 安全保密员：业务（含知识库写）+ 后台监控 + 知识库文件删除；专属＝敏感标记<br>
-    · audadmin 审计员：全局只读 + 审计日志（未来接入）<br>监督关系：sysadmin 建号/配系统 → secadmin 保密与授权 → audadmin 全程审计，三权分立、互相制衡。</p>
+    <p class="tip">· user 普通用户：知识库浏览/上传/删除 | 文档报告浏览/创建/删除/下载 | AI 对话<br>
+    · sysadmin 系统管理员：user 全部功能 + 后台监控 + 用户管理（禁审计日志）<br>
+    · secadmin 安全保密员：user 全部功能 + 后台监控；专属＝敏感标记<br>
+    · audadmin 审计员：知识库浏览 | 文档报告浏览/下载 | 后台监控 | 审计日志专查（禁上传/删除/创建/AI 对话）<br>监督关系：sysadmin 建号/配系统 → secadmin 保密与授权 → audadmin 全程审计，三权分立、互相制衡。</p>
   </div>
 </div>
 <script>
