@@ -2502,8 +2502,8 @@ async function startAiStream(continuing){
           temperature:0.7,
           max_tokens:2048,
           enable_rag: enableRAG,
-          region: enableRAG ? (window.__ragProvinces||[]) : [],
-          city: enableRAG ? (window.__ragCities||[]) : [],
+          provinces: enableRAG ? (window.__ragProvinces||[]) : [],
+          cities: enableRAG ? (window.__ragCities||[]) : [],
           file_types: enableRAG ? (window.__ragFileTypes||[]) : []
         })
       }
@@ -2668,8 +2668,8 @@ async function processDocument(){
         original_text:originalText,
         requirements:requirements,
         output_filename:outputFilename,
-        region:docProvinces,
-        city:docCities,
+        provinces:docProvinces,
+        cities:docCities,
         file_types:docFileTypes
       })
     });
