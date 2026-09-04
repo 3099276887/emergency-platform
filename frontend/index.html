@@ -1542,13 +1542,13 @@ async function loadKnowledgeFiles(){
           <strong>${escapeHtml(file.filename || "未命名文件")}</strong>
           <span>类型：${escapeHtml(file.file_type || "—")}</span>
           ${
-            file.provinces && file.provinces.length>0
-              ? `<span>省份：${escapeHtml(Array.isArray(file.provinces)?file.provinces.join("、"):file.provinces)}</span>`
+            file.region && file.region.length>0
+              ? `<span>省份：${escapeHtml(Array.isArray(file.region)?file.region.join("、"):file.region)}</span>`
               : ""
           }
           ${
-            file.cities && file.cities.length>0
-              ? `<span>城市：${escapeHtml(Array.isArray(file.cities)?file.cities.join("、"):file.cities)}</span>`
+            file.city && file.city.length>0
+              ? `<span>城市：${escapeHtml(Array.isArray(file.city)?file.city.join("、"):file.city)}</span>`
               : ""
           }
           <span>大小：${escapeHtml(formatFileSize(file.size))}</span>
@@ -1744,8 +1744,8 @@ async function uploadKnowledgeFile(){
       var detected=autoDetectRegion(file.name);
       if(detected){
         var parts=detected.split("-");
-        formData.append("provinces",parts[0]);
-        if(parts[1]) formData.append("cities",parts[1]);
+        formData.append("region",parts[0]);
+        if(parts[1]) formData.append("city",parts[1]);
       }
 
       try{
@@ -2502,8 +2502,8 @@ async function startAiStream(continuing){
           temperature:0.7,
           max_tokens:2048,
           enable_rag: enableRAG,
-          provinces: enableRAG ? (window.__ragProvinces||[]) : [],
-          cities: enableRAG ? (window.__ragCities||[]) : [],
+          region: enableRAG ? (window.__ragProvinces||[]) : [],
+          city: enableRAG ? (window.__ragCities||[]) : [],
           file_types: enableRAG ? (window.__ragFileTypes||[]) : []
         })
       }
@@ -2668,8 +2668,8 @@ async function processDocument(){
         original_text:originalText,
         requirements:requirements,
         output_filename:outputFilename,
-        provinces:docProvinces,
-        cities:docCities,
+        region:docProvinces,
+        city:docCities,
         file_types:docFileTypes
       })
     });
