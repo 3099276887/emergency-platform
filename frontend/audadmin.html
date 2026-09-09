@@ -47,6 +47,10 @@
   .pagination{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #e6edf2}
   .pagination-info{font-size:13px;color:#6b7d89}
   .pagination-buttons{display:flex;gap:6px}
+  .pagination-buttons .btn-secondary{padding:6px 12px;font-size:13px}
+  .pagination-buttons .page-btn{margin:0}
+  .pagination-buttons .page-btn:disabled{opacity:.4;cursor:not-allowed}
+  .pagination-buttons .page-active{background:#2563eb;color:#fff;border-color:#2563eb}
   .pagination-buttons button{padding:6px 12px;border:1px solid #cbd7de;border-radius:4px;background:#fff;cursor:pointer;font-size:13px}
   .pagination-buttons button:hover{background:#f5f8fa}
   .pagination-buttons button:disabled{opacity:.4;cursor:not-allowed}
@@ -316,24 +320,47 @@
       pagination.innerHTML = "";
       return;
     }
-    var html = "";
-    var start = Math.max(1, page - 2);
-    var end = Math.min(totalPages, page + 2);
-    var buttons = [];
-    if(page > 1) buttons.push({text:"上一页", page: page - 1, disabled: false});
-    for(var i = start; i <= end; i++){
-      buttons.push({text: String(i), page: i, active: i === page});
+
+    // 统一翻页格式：上一页 | 页码(省略号) | 下一页（与 index.html 数据中心一致）
+    var pages = [];
+    var around = 2;
+    if(totalPages <= 7){
+      for(var i = 1; i <= totalPages; i++) pages.push(i);
+    }else{
+      pages.push(1);
+      var start = Math.max(2, page - around);
+      var end = Math.min(totalPages - 1, page + around);
+      if(start > 2) pages.push("...");
+      for(var j = start; j <= end; j++) pages.push(j);
+      if(end < totalPages - 1) pages.push("...");
+      pages.push(totalPages);
     }
-    if(page < totalPages) buttons.push({text:"下一页", page: page + 1, disabled: false});
-    html = '<div class="pagination-buttons">';
-    buttons.forEach(function(b){
-      var cls = b.active ? "active" : "";
-      var dis = b.disabled ? "disabled" : "";
-      html += '<button class="'+cls+'" '+dis+' onclick="goToPage('+b.page+')">'+b.text+'</button>';
+
+    var html = '<div class="pagination-buttons">';
+    html += '<button data-page="'+(page-1)+'"'+(page<=1?' disabled':'')+' class="btn-secondary page-btn">上一页</button>';
+    pages.forEach(function(p){
+      if(p === "..."){
+        html += '<span class="page-ellipsis" style="display:inline-block;min-width:32px;text-align:center;font-size:14px;color:#999">…</span>';
+      }else{
+        html += '<button data-page="'+p+'"'+(p===page?' class="btn-secondary page-btn page-active" style="background:#2563eb;color:#fff;border-color:#2563eb;min-width:36px"':' class="btn-secondary page-btn" style="min-width:36px"')+'>'+p+'</button>';
+      }
     });
+    html += '<button data-page="'+(page+1)+'"'+(page>=totalPages?' disabled':'')+' class="btn-secondary page-btn">下一页</button>';
     html += '</div>';
     pagination.innerHTML = html;
+
+    pagination.querySelectorAll(".page-btn:not(:disabled)").forEach(function(btn){
+      btn.onclick = function(){
+        var p = parseInt(btn.dataset.page, 10);
+        if(p > 0 && p <= totalPages && p !== page){
+          goToPage(p);
+        }
+      };
+    });
   }
+
+  // 暴露到 window，供筛选器 onchange/onclick/onkeydown 全局调用（否则 ReferenceError，搜索/刷新无反应）
+  window.loadLogs = loadLogs;
 
   window.goToPage = function(p){
     currentPage = p;
