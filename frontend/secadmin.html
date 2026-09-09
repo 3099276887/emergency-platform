@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>安全保密员台 - 应急安全综合平台</title>
 <script src="auth.js"></script>
+<script src="pagination.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:Arial,"Microsoft YaHei",sans-serif;background:#eef2f5;color:#233;min-height:100vh}
@@ -67,22 +68,32 @@
       </select>
       <button id="kbSearchBtn" class="btn-secondary">搜索</button>
     </div>
-    <table id="fileTable"></table>
-    <div id="emptyTip" style="color:#9aaab3;padding:14px 0;font-size:13px"></div>
+    <div class="kb-section">
+      <h3 style="color:#991b1b;font-size:14px;margin:16px 0 6px">敏感文件专属区</h3>
+      <div id="sensInfo" style="font-size:12px;color:#9aaab3;margin-bottom:6px"></div>
+      <table id="sensTable"><thead><tr><th>文件</th><th>类型</th><th>保密</th><th>操作</th></tr></thead><tbody id="sensBody"></tbody></table>
+      <div id="sensEmpty" style="color:#9aaab3;padding:12px 0;font-size:13px"></div>
+      <div id="sensPager" style="margin-top:10px"></div>
+    </div>
+    <div class="kb-section">
+      <h3 style="font-size:14px;margin:22px 0 6px;color:#14532d">常规文件</h3>
+      <div id="normalInfo" style="font-size:12px;color:#9aaab3;margin-bottom:6px"></div>
+      <table id="normalTable"><thead><tr><th>文件</th><th>类型</th><th>保密</th><th>操作</th></tr></thead><tbody id="normalBody"></tbody></table>
+      <div id="normalEmpty" style="color:#9aaab3;padding:12px 0;font-size:13px"></div>
+      <div id="normalPager" style="margin-top:10px"></div>
+    </div>
   </div>
   <div class="panel">
-    <h2>权限治理视图</h2>
-    <div class="sub">当前权限矩阵：普通用户禁用后台监控/用户管理/审计；三员各司其职。</div>
-    <p class="tip">· user 普通用户：知识库浏览/上传/删除 | 文档报告浏览/创建/删除/下载 | AI 对话<br>
-    · sysadmin 系统管理员：user 全部功能 + 后台监控 + 用户管理（禁审计日志）<br>
-    · secadmin 安全保密员：user 全部功能 + 后台监控；专属＝敏感标记<br>
-    · audadmin 审计员：知识库浏览 | 文档报告浏览/下载 | 后台监控 | 审计日志专查（禁上传/删除/创建/AI 对话）<br>监督关系：sysadmin 建号/配系统 → secadmin 保密与授权 → audadmin 全程审计，三权分立、互相制衡。</p>
+    <h2>数据保密封控</h2>
+    <div class="sub">安全保密员权限范围</div>
+    <p class="tip">· 敏感文件：标记/撤销、查看、删除<br>
+    · 知识库：浏览、上传、删除<br>
+    · 后台监控：数据保密视角</p>
   </div>
 </div>
 <script>
 (function(){
   var who = document.getElementById("whoami");
-  var table = document.getElementById("fileTable");
   var ROLE_NAMES = {user:"普通用户", sysadmin:"系统管理员", secadmin:"安全保密员", audadmin:"审计员"};
   async function me(){
     var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
@@ -93,6 +104,48 @@
   }
 
   function stat(k, v, sub){ document.getElementById("statCards").innerHTML += "<div class='card'><h3>"+k+"</h3><div class='big'>"+v+"</div><div class='sub'>"+sub+"</div></div>"; }
+
+  var PAGE_SIZE = 10;
+  // 两个分区各自持有的当前页
+  var state = { sens: [], norm: [], sensPage: 1, normPage: 1 };
+
+  function fillRows(table, list, page){
+    var start = (page - 1) * PAGE_SIZE;
+    var slice = list.slice(start, start + PAGE_SIZE);
+    var rows = slice.map(function(f){
+      var isSens = !!f.sensitive;
+      var tag = '<span class="tag '+(isSens?"sens":"normal")+'">'+(isSens?"敏感":"常规")+"</span>";
+      return "<tr data-name='"+esc(f.filename)+"' data-sens='"+ (isSens?"1":"0") +"'>"+
+        "<td>"+esc(f.filename)+"</td>"+
+        "<td>"+esc(f.file_type||"—")+"</td>"+
+        "<td>"+tag+"</td>"+
+        (isSens
+          ? "<td><button class='mark' title='撤销敏感标记'>撤销敏感</button><button class='del'>删除</button></td>"
+          : "<td><button class='mark' title='设为敏感文件'>标记敏感</button><button class='del'>删除</button></td>")+
+        "</tr>";
+    }).join("");
+    document.getElementById(table).innerHTML = rows;
+  }
+
+  function renderSens(){
+    document.getElementById("sensEmpty").textContent = state.sens.length ? "" : "暂无敏感文件";
+    fillRows("sensBody", state.sens, state.sensPage);
+    renderPager(document.getElementById("sensPager"), {
+      total: state.sens.length, page: state.sensPage, pageSize: PAGE_SIZE,
+      info: document.getElementById("sensInfo"),
+      onJump: function(p){ state.sensPage = p; renderSens(); }
+    });
+  }
+
+  function renderNorm(){
+    document.getElementById("normalEmpty").textContent = state.norm.length ? "" : "暂无常规文件";
+    fillRows("normalBody", state.norm, state.normPage);
+    renderPager(document.getElementById("normalPager"), {
+      total: state.norm.length, page: state.normPage, pageSize: PAGE_SIZE,
+      info: document.getElementById("normalInfo"),
+      onJump: function(p){ state.normPage = p; renderNorm(); }
+    });
+  }
 
   async function loadFiles(){
     var keywordInput=document.getElementById("kbKeywordInput");
@@ -110,53 +163,52 @@
     var url="/api/v1/files"+(query ? "?"+query : "");
 
     var r = await fetch(url, {headers:{Accept:"application/json"}});
-    if(!r.ok){ table.innerHTML=''; document.getElementById("emptyTip").textContent="加载失败："+r.status; return; }
+    if(!r.ok){
+      document.getElementById("sensBody").innerHTML='';
+      document.getElementById("normalBody").innerHTML='';
+      var msg = document.getElementById("sensEmpty");
+      msg.textContent="加载失败："+r.status;
+      return;
+    }
     var list = await r.json();
     document.getElementById("statCards").innerHTML="";
     var sens = list.filter(function(f){ return f.sensitive; });
+    var norm = list.filter(function(f){ return !f.sensitive; });
     stat("文件总数", list.length, "知识库登记文件");
     stat("敏感文件", sens.length, "已标记 / 需重点把控");
-    stat("非敏感", list.length - sens.length, "常规文件");
-    if(!list.length){ table.innerHTML=''; document.getElementById("emptyTip").textContent="暂无知识库文件。"; return; }
-    document.getElementById("emptyTip").textContent="";
-    var rows = list.map(function(f){
-      var isSens = !!f.sensitive;
-      var tag = '<span class="tag '+(isSens?"sens":"normal")+'">'+(isSens?"敏感":"常规")+"</span>";
-      return "<tr data-name='"+esc(f.filename)+"' data-sens='"+ (isSens?"1":"0") +"'>"+
-        "<td>"+esc(f.filename)+"</td>"+
-        "<td>"+esc(f.file_type||"—")+"</td>"+
-        "<td>"+tag+"</td>"+
-        (isSens
-          ? "<td><button class='mark' title='撤销敏感标记'>撤销敏感</button><button class='del'>删除</button></td>"
-          : "<td><button class='mark' title='设为敏感文件'>标记敏感</button><button class='del'>删除</button></td>")+
-        "</tr>";
-    }).join("");
-    table.innerHTML = "<thead><tr><th>文件</th><th>类型</th><th>保密</th><th>操作</th></tr></thead><tbody>"+rows+"</tbody>";
+    stat("常规文件", norm.length, "未标记");
+    state.sens = sens; state.norm = norm;
+    state.sensPage = 1; state.normPage = 1;
+    renderSens();
+    renderNorm();
   }
 
-  table.addEventListener("click", function(ev){
-    var btn = ev.target.closest("button");
-    if(!btn) return;
-    var tr = btn.closest("tr");
-    var name = tr.getAttribute("data-name");
-    var sens = tr.getAttribute("data-sens") === "1";
-    var txt = btn.textContent;
+  function bindTable(table){
+    document.getElementById(table).addEventListener("click", function(ev){
+      var btn = ev.target.closest("button");
+      if(!btn) return;
+      var tr = btn.closest("tr");
+      var name = tr.getAttribute("data-name");
+      var txt = btn.textContent;
 
-    if(txt === "标记敏感" || txt === "撤销敏感"){
-      var to = txt === "标记敏感";
-      var resp = fetch("/api/v1/files/"+encodeURIComponent(name)+"/sensitive", {
-        method:"PATCH", headers:{"Content-Type":"application/json","Accept":"application/json"},
-        body: JSON.stringify({sensitive: to})
-      }).then(function(r){ if(!r.ok) throw new Error(r.status); loadFiles(); });
-    } else if(txt === "删除"){
-      if(!confirm("确认删除知识库文件？此操作不可恢复。\n"+name)) return;
-      fetch("/api/v1/files/"+encodeURIComponent(name), {method:"DELETE", headers:{Accept:"application/json"}})
-        .then(function(r){ if(!r.ok) throw new Error(r.status); loadFiles(); })
-        .catch(function(e){ alert("删除失败："+e.message); });
-    }
-  });
+      if(txt === "标记敏感" || txt === "撤销敏感"){
+        var to = txt === "标记敏感";
+        fetch("/api/v1/files/"+encodeURIComponent(name)+"/sensitive", {
+          method:"PATCH", headers:{"Content-Type":"application/json","Accept":"application/json"},
+          body: JSON.stringify({sensitive: to})
+        }).then(function(r){ if(!r.ok) throw new Error(r.status); loadFiles(); });
+      } else if(txt === "删除"){
+        if(!confirm("确认删除知识库文件？此操作不可恢复。\n"+name)) return;
+        fetch("/api/v1/files/"+encodeURIComponent(name), {method:"DELETE", headers:{Accept:"application/json"}})
+          .then(function(r){ if(!r.ok) throw new Error(r.status); loadFiles(); })
+          .catch(function(e){ alert("删除失败："+e.message); });
+      }
+    });
+  }
 
   who.textContent = "安全保密员";
+  bindTable("sensTable");
+  bindTable("normalTable");
   me().then(function(d){ if(!d) return; who.textContent = "安全保密员："+d.username; loadFiles(); });
   loadFiles();
 
