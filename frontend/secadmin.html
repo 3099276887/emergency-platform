@@ -84,8 +84,6 @@
   var who = document.getElementById("whoami");
   var table = document.getElementById("fileTable");
   var ROLE_NAMES = {user:"普通用户", sysadmin:"系统管理员", secadmin:"安全保密员", audadmin:"审计员"};
-  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
-
   async function me(){
     var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
     if(r.status === 401){ location.href="login.html"; return null; }

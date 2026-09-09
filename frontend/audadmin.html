@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>审计员台 - 应急安全综合平台</title>
 <script src="auth.js"></script>
+<script src="pagination.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:Arial,"Microsoft YaHei",sans-serif;background:#eef2f5;color:#233;min-height:100vh}
@@ -210,14 +211,6 @@
     delete_document:"删除文档"
   };
 
-  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
-
-  function formatTs(ts){
-    if(!ts) return "";
-    var dt = new Date(ts + " UTC");
-    return dt.toLocaleString("zh-CN", {timeZone:"Asia/Shanghai"});
-  }
-
   async function me(){
     var r = await fetch("/api/v1/auth/me", {headers:{Accept:"application/json"}});
     if(r.status === 401){ location.href="login.html"; return null; }
@@ -307,59 +300,23 @@
         "<td class='detail-cell' title='"+esc(log.target)+"'>"+esc(targetShort || "—")+"</td>"+
         "<td><span class='tag "+successCls+"'>"+successText+"</span></td>"+
         "<td>"+esc(log.ip || "—")+"</td>"+
-        "<td><button onclick='showDetail("+log.id+")' style='padding:3px 8px;border:1px solid #cbd7de;border-radius:3px;background:#fff;cursor:pointer;font-size:12px'>详情</button></td>"+
+        "<td><button onclick='showDetail("+log.id+")' style='padding:3px 8px;border:1px solid #cbd7de;border-radius:3px;background:#fff;cursor:pointer;font-size:12px'>查看明细</button></td>"+
       "</tr>";
     }).join("");
     logBody.innerHTML = rows;
   }
 
+  // 统一翻页组件：复用 pagination.js（上一页 | 页码省略号跳页 | 下一页 | 跳页）
   function renderPagination(total, page, pageSize){
-    var totalPages = Math.ceil(total / pageSize) || 1;
-    paginationInfo.textContent = "共 " + total + " 条记录，第 " + page + " / " + totalPages + " 页";
-    if(totalPages <= 1){
-      pagination.innerHTML = "";
-      return;
-    }
-
-    // 统一翻页格式：上一页 | 页码(省略号) | 下一页（与 index.html 数据中心一致）
-    var pages = [];
-    var around = 2;
-    if(totalPages <= 7){
-      for(var i = 1; i <= totalPages; i++) pages.push(i);
-    }else{
-      pages.push(1);
-      var start = Math.max(2, page - around);
-      var end = Math.min(totalPages - 1, page + around);
-      if(start > 2) pages.push("...");
-      for(var j = start; j <= end; j++) pages.push(j);
-      if(end < totalPages - 1) pages.push("...");
-      pages.push(totalPages);
-    }
-
-    var html = '<div class="pagination-buttons">';
-    html += '<button data-page="'+(page-1)+'"'+(page<=1?' disabled':'')+' class="btn-secondary page-btn">上一页</button>';
-    pages.forEach(function(p){
-      if(p === "..."){
-        html += '<span class="page-ellipsis" style="display:inline-block;min-width:32px;text-align:center;font-size:14px;color:#999">…</span>';
-      }else{
-        html += '<button data-page="'+p+'"'+(p===page?' class="btn-secondary page-btn page-active" style="background:#2563eb;color:#fff;border-color:#2563eb;min-width:36px"':' class="btn-secondary page-btn" style="min-width:36px"')+'>'+p+'</button>';
-      }
-    });
-    html += '<button data-page="'+(page+1)+'"'+(page>=totalPages?' disabled':'')+' class="btn-secondary page-btn">下一页</button>';
-    html += '</div>';
-    pagination.innerHTML = html;
-
-    pagination.querySelectorAll(".page-btn:not(:disabled)").forEach(function(btn){
-      btn.onclick = function(){
-        var p = parseInt(btn.dataset.page, 10);
-        if(p > 0 && p <= totalPages && p !== page){
-          goToPage(p);
-        }
-      };
+    renderPager(pagination, {
+      total: total,
+      page: page,
+      pageSize: pageSize,
+      info: paginationInfo,
+      onJump: window.goToPage
     });
   }
 
-  // 暴露到 window，供筛选器 onchange/onclick/onkeydown 全局调用（否则 ReferenceError，搜索/刷新无反应）
   window.loadLogs = loadLogs;
 
   window.goToPage = function(p){
@@ -393,7 +350,7 @@
         '<div class="detail-row"><div class="detail-label">角色</div><div class="detail-value">'+esc(ROLE_NAMES[log.role] || log.role)+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">动作</div><div class="detail-value">'+esc(ACTION_LABELS[log.action] || log.action)+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">目标对象</div><div class="detail-value">'+esc(log.target || "—")+'</div></div>'+
-        '<div class="detail-row"><div class="detail-label">详情</div><div class="detail-value">'+esc(log.detail || "—")+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">补充说明</div><div class="detail-value">'+esc(log.detail || "—")+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">IP 地址</div><div class="detail-value">'+esc(log.ip || "—")+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">执行结果</div><div class="detail-value">'+(log.success ? "成功" : "失败")+'</div></div>'+
       '</div></div>';

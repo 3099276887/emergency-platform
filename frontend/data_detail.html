@@ -318,11 +318,6 @@
       contentEl.innerHTML='<div class="error">加载失败<div class="detail">'+escapeHtml(err.message)+'</div></div>';
     });
 
-  function escapeHtml(str){
-    if(typeof str!=="string") return "";
-    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-
   function downloadTask(id, name){
     var a=document.createElement("a");
     a.href=API_BASE+"/documents/"+encodeURIComponent(id)+"/download?format=md";

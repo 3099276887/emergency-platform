@@ -272,11 +272,6 @@ function htmlDot(ok){
 
 function pad(n){ return n < 10 ? "0" + n : "" + n; }
 
-function escapeHtml(str){
-  if(typeof str!=="string") return "";
-  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
 function refreshAll(){
   var btn = document.getElementById("refreshBtn");
   btn.disabled = true;

@@ -132,12 +132,6 @@ function showMsg(id, text, ok){
   if(text){ if(ok) setTimeout(function(){ el.textContent=""; el.className="msg"; }, 3000); }
 }
 
-function esc(s){
-  return String(s==null?"":s).replace(/[&<>"']/g, function(c){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-  });
-}
-
 function renderRoleTip(){
   var r = document.getElementById("role").value;
   document.getElementById("roleTip").innerHTML = "<b>" + ROLE_NAMES[r] + "：</b>" + ROLE_TIPS[r];

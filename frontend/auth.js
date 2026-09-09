@@ -53,6 +53,22 @@
     return url + sep + "token=" + encodeURIComponent(t);
   };
 
+  // 通用 HTML 转义（统一实现，各页复用，无需各自定义 esc/escapeHtml）
+  window.esc = function(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  };
+  // 兼容部分页面使用的 escapeHtml 命名
+  window.escapeHtml = window.esc;
+
+  // UTC 时间串 → 本地时间展示（统一实现，各页复用）
+  window.formatTs = function(ts){
+    if(!ts) return "";
+    var dt = new Date(ts + " UTC");
+    return dt.toLocaleString("zh-CN", {timeZone:"Asia/Shanghai"});
+  };
+
   // 未登录：直接跳转登录页
   if(!window.__sferagToken){
     toLogin();
