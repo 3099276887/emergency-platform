@@ -1,27 +1,24 @@
 #!/usr/bin/env bash
-# stress_test.sh —— 压力/并发测试, 供《硬件测试报告》T04/T05/T06 取数
+# stress_test.sh —— 硬件压测, 供《硬件测试报告》T04/T06 取数
 # 用法:
-#   bash stress_test.sh        # 一轮: CPU+内存+磁盘压测 + 后端并发
-#   bash stress_test.sh --api  # 仅后端接口并发
+#   bash stress_test.sh        # 一轮: CPU+内存+磁盘压测
 #   bash stress_test.sh --cpu  # 仅 CPU 压测(10 秒)
 set -uo pipefail
 
 log() { printf '[压测] %s\n' "$*"; }
 warn() { printf '[警告] %s\n' "$*"; }
 
-API="http://127.0.0.1:8081"
 DURATION=10
 MODE="all"
 
 usage() {
-  echo "用法: bash stress_test.sh [--all|--api|--cpu]"
+  echo "用法: bash stress_test.sh [--all|--cpu]"
   echo "  (默认 --all)  DURATION=秒 可覆盖压测时长"
   exit 1
 }
 
 case "${1:-all}" in
   --all) MODE=all ;;
-  --api) MODE=api ;;
   --cpu) MODE=cpu ;;
   *) usage ;;
 esac
@@ -61,29 +58,12 @@ disk_stress() {
   log "磁盘压测结束"
 }
 
-api_stress() {
-  local n=20  # 并发连接数
-  log "后端并发压测: ${n} 路同时请求 / 健康接口"
-  log "  (T05 需真实对话/检索请改用浏览器多开或接真实接口)"
-  local pids=()
-  for i in $(seq "$n"); do
-    curl -s -o /dev/null -m 15 "$API/health" &
-    pids+=( $! )
-  done
-  wait "${pids[@]}" 2>/dev/null || true
-  log "  ${n} 路健康请求完成"
-}
-
 case "$MODE" in
   all)
     cpu_stress
     mem_stress
     disk_stress
-    api_stress
     log "一轮压测结束, 请配合 monitor.sh 记录 CPU/内存/温度峰值"
-    ;;
-  api)
-    api_stress
     ;;
   cpu)
     cpu_stress
