@@ -49,6 +49,20 @@
   td button.danger:hover{border-color:#dc2626;color:#dc2626}
   .empty{color:#9aaab3;font-size:13px;padding:16px 0}
   tr.self-row button{display:none}
+  .modal-mask{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);align-items:center;justify-content:center;z-index:50}
+  .modal-mask.show{display:flex}
+  .modal{width:360px;max-width:92vw;background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.2);overflow:hidden}
+  .modal-head{background:#123b5d;color:#fff;padding:13px 16px;font-size:14px;font-weight:600}
+  .modal-body{padding:16px}
+  .modal-target{font-size:13px;color:#1f3a52;margin-bottom:10px}
+  .modal-target b{color:#123b5d}
+  .modal-body select{width:100%;padding:9px 10px;border:1px solid #cbd7de;border-radius:4px;font:inherit;font-size:14px;margin-bottom:10px}
+  .modal-body select:focus{outline:none;border-color:#2563eb}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+  .modal-actions button{padding:8px 18px;border:1px solid #cbd7de;border-radius:4px;background:#fff;color:#1f3a52;cursor:pointer;font-size:13px}
+  .modal-actions button:hover{border-color:#2563eb;color:#2563eb}
+  .modal-actions .primary{border:0;background:#2563eb;color:#fff}
+  .modal-actions .primary:hover{background:#1d4ed8}
 </style>
 </head>
 <body>
@@ -108,6 +122,21 @@
     <div class="sub">仅系统管理员可在此创建、启用/停用、重置密码或调整角色。</div>
     <table id="userTable"></table>
     <div class="empty" id="emptyTip"></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="roleModal">
+  <div class="modal">
+    <div class="modal-head">调整角色</div>
+    <div class="modal-body">
+      <div class="modal-target">为 <b id="roleModalUser"></b> 选择新角色：</div>
+      <select id="roleModalSelect"></select>
+      <div class="role-tip" id="roleModalTip"></div>
+      <div class="modal-actions">
+        <button id="roleModalCancel">取消</button>
+        <button id="roleModalOk" class="primary">确定</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -272,20 +301,55 @@ table.addEventListener("click", async function(ev){
     } catch(e){ alert("无法连接后端"); }
   }
   else if(txt === "改角色"){
-    var nr = prompt("为 " + uname + " 设置新角色（user/sysadmin/secadmin/audadmin）：", role);
-    if(nr === null) return;
-    nr = nr.replace(/\s/g,"");
-    if(!["user","sysadmin","secadmin","audadmin"].includes(nr)){ alert("无效角色"); return; }
-    try {
-      var resp = await fetch("/api/v1/users/" + id, {
-        method: "PATCH",
-        headers: { "Content-Type":"application/json", "Accept":"application/json" },
-        body: JSON.stringify({ role: nr })
-      });
-      if(resp.ok) loadUsers(); else alert("操作失败：" + (await resp.text()));
-    } catch(e){ alert("无法连接后端"); }
+    openRoleModal(id, uname, role);
   }
 });
+
+/* ---- 改角色下拉弹窗 ---- */
+var roleModal = document.getElementById("roleModal");
+var roleModalSelect = document.getElementById("roleModalSelect");
+var roleModalUser = document.getElementById("roleModalUser");
+var roleModalTip = document.getElementById("roleModalTip");
+var roleModalPending = null;   // { id, uname, curRole }
+
+function renderRoleModalTip(){
+  var r = roleModalSelect.value;
+  roleModalTip.innerHTML = "<b>" + ROLE_NAMES[r] + "：</b>" + ROLE_TIPS[r];
+}
+
+function openRoleModal(id, uname, curRole){
+  roleModalPending = { id: id, uname: uname, curRole: curRole };
+  roleModalUser.textContent = uname + "（当前：" + ROLE_NAMES[curRole] + "）";
+  roleModalSelect.innerHTML = Object.keys(ROLE_NAMES)
+    .map(function(r){ return "<option value='" + r + "'" + (r === curRole ? " selected" : "") + ">" + ROLE_NAMES[r] + "</option>"; })
+    .join("");
+  renderRoleModalTip();
+  roleModal.classList.add("show");
+}
+
+function closeRoleModal(){
+  roleModal.classList.remove("show");
+  roleModalPending = null;
+}
+
+roleModalSelect.addEventListener("change", renderRoleModalTip);
+document.getElementById("roleModalCancel").onclick = closeRoleModal;
+roleModal.addEventListener("click", function(ev){ if(ev.target === roleModal) closeRoleModal(); });
+
+document.getElementById("roleModalOk").onclick = async function(){
+  var p = roleModalPending;
+  var nr = roleModalSelect.value;
+  if(!p || nr === p.curRole) { closeRoleModal(); return; }
+  try {
+    var resp = await fetch("/api/v1/users/" + p.id, {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json", "Accept":"application/json" },
+      body: JSON.stringify({ role: nr })
+    });
+    closeRoleModal();
+    if(resp.ok) loadUsers(); else alert("操作失败：" + (await resp.text()));
+  } catch(e){ closeRoleModal(); alert("无法连接后端"); }
+};
 
 document.getElementById("backBtn").onclick = function(){ window.location.href = "index.html"; };
 document.getElementById("logoutBtn").onclick = function(){ window.logoutAuth(); window.location.href = "login.html"; };

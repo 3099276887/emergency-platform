@@ -343,8 +343,7 @@
       '<div class="modal-header"><h3>操作日志详情</h3><button class="modal-close" onclick="closeDetail()">&times;</button></div>'+
       '<div class="modal-body">'+
         '<div class="detail-row"><div class="detail-label">ID</div><div class="detail-value">'+log.id+'</div></div>'+
-        '<div class="detail-row"><div class="detail-label">时间（UTC）</div><div class="detail-value">'+esc(log.ts)+'</div></div>'+
-        '<div class="detail-row"><div class="detail-label">本地时间</div><div class="detail-value">'+esc(formatTs(log.ts))+'</div></div>'+
+        '<div class="detail-row"><div class="detail-label">时间</div><div class="detail-value">'+esc(formatTs(log.ts))+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">用户名</div><div class="detail-value">'+esc(log.username)+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">角色</div><div class="detail-value">'+esc(ROLE_NAMES[log.role] || log.role)+'</div></div>'+
         '<div class="detail-row"><div class="detail-label">动作</div><div class="detail-value">'+esc(ACTION_LABELS[log.action] || log.action)+'</div></div>'+
