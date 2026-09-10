@@ -14,13 +14,17 @@ PKG="$BASE/emergency_offline.tar"
 
 # ---- 打包范围开关(可按需覆盖, 如 INCLUDE_DATA=0 排除运行数据) ----
 INCLUDE_DEP="${INCLUDE_DEP:-1}"       # 依赖 /usr/local/lib/python3.10/dist-packages(整包带走)
-INCLUDE_BACKEND="${INCLUDE_BACKEND:-1}"  # 后端 /data/SafeRAG
-INCLUDE_FRONT="${INCLUDE_FRONT:-1}"   # 前端 /data2/www/emergency-platform/frontend
-INCLUDE_MODEL="${INCLUDE_MODEL:-1}"   # 模型 /data2/models/Qwen3_5(bmodel+config)
+INCLUDE_BACKEND="${INCLUDE_BACKEND:-1}"  # 后端 SAFERAG_DIR
+# 目标机目录 = 源盒 /data2 整体迁到 $PREFIX; 改根只需改这一个变量(如 PREFIX=/data → /sd/data)
+INCLUDE_FRONT="${INCLUDE_FRONT:-1}"   # 前端 → $PREFIX/www/...
+INCLUDE_MODEL="${INCLUDE_MODEL:-1}"   # 模型 → $PREFIX/models(bge + Qwen3_5)
 INCLUDE_SVC="${INCLUDE_SVC:-1}"       # 3 个 systemd 服务
 INCLUDE_NGINX="${INCLUDE_NGINX:-1}"   # nginx 配置 /etc/nginx
-INCLUDE_DATA="${INCLUDE_DATA:-1}"     # 运行数据 /data/SafeRAG/data(可排除)
+INCLUDE_DATA="${INCLUDE_DATA:-1}"     # 运行数据 SAFERAG_DIR/data(可排除)
 INCLUDE_SYSDEBS="${INCLUDE_SYSDEBS:-1}" # 系统软件 deb → 包内 /opt/sysdebs
+
+# 目标机安置根(源盒 /data2 的内容整体落到它下面); 迁移到别的盘只需换这一个变量
+PREFIX="${PREFIX:-/data}"
 
 DIST_PKGS="/usr/local/lib/python3.10/dist-packages"
 SAFERAG_DIR="/data/SafeRAG"
@@ -61,6 +65,13 @@ mirror() {  # 把 $1(绝对路径)镜像到装配目录同位置
   cp -a "$abs" "$dst"
 }
 
+mapdata() {  # 把源盒 /data2 下的 $1(相对 /data2)落到装配的 $PREFIX 下同相对位置 → 目标机 $PREFIX/...
+  local rel="${1#/data2/}"
+  local dst="$OUT$PREFIX/$rel"
+  mkdir -p "$(dirname "$dst")"
+  cp -a "$1" "$dst"
+}
+
 collect_sysdebs() {  # 收集系统软件 deb 到包内 /opt/sysdebs
   if [ "$INCLUDE_SYSDEBS" != "1" ]; then log "跳过系统软件收集(INCLUDE_SYSDEBS=0)"; return 0; fi
   log "==== 收集系统软件 deb: $SYSDEB_PACKAGES ===="
@@ -96,12 +107,17 @@ collect() {
   if [ "$INCLUDE_BACKEND" = "1" ]; then
     mirror "$SAFERAG_DIR"
     if [ "$INCLUDE_DATA" != "1" ]; then rm -rf "$OUT$SAFERAG_DIR/data"; fi
+    # 整体迁移 data2→$PREFIX: 后端 config 默认的 embedding/reranker 路径前缀随之改写
+    local cfg="$OUT$SAFERAG_DIR/backend/core/config.py"
+    [ -f "$cfg" ] && sed -i "s#/data2/#${PREFIX}/#g" "$cfg"
   fi
-  if [ "$INCLUDE_FRONT" = "1" ];   then mirror "$FRONT_DIR"; fi
-  if [ "$INCLUDE_MODEL" = "1" ];   then mirror "$MODEL_DIR"; fi
+  if [ "$INCLUDE_FRONT" = "1" ];   then mapdata "$FRONT_DIR"; fi
+  if [ "$INCLUDE_MODEL" = "1" ];   then mapdata "/data2/models"; fi
   if [ "$INCLUDE_SVC" = "1" ]; then
     mkdir -p "$OUT/etc/systemd/system"
     local s; for s in "${SVC_FILES[@]}"; do cp "$s" "$OUT/etc/systemd/system/"; done
+    # 整体迁移 data2→$PREFIX: 重写服务单元里的模型/数据路径前缀
+    sed -i "s#/data2/#${PREFIX}/#g" "$OUT/etc/systemd/system/"*.service
   fi
   if [ "$INCLUDE_NGINX" = "1" ];   then mirror "/etc/nginx"; fi
   # 覆盖为"无 Docker 前端"版站点(宿主 nginx 静态托管前端并反代后端/模型, 目标机不需 18081 容器)
@@ -112,8 +128,8 @@ server {
     listen [::]:80 default_server;
     server_name _;
 
-    # 前端静态页面目录(与打包内容一致; 若实际路径不同请改 root)
-    root /data2/www/emergency-platform/frontend;
+    # 前端静态页面目录(占位符 __WWW_ROOT__ 由下面 sed 替换为 $PREFIX/www/...)
+    root __WWW_ROOT__;
     index index.html;
 
     # SafeRAG 业务 API (8081)
@@ -173,7 +189,9 @@ server {
     }
 }
 NN
-    log "已写入无 Docker 前端版站点配置"
+    # 占位符替换为真实根(保留 $host/$uri 等 nginx 变量不被 bash 展开, 故用占位符)
+    sed -i "s#__WWW_ROOT__#${PREFIX}/www/emergency-platform/frontend#" "$OUT/etc/nginx/sites-enabled/SafeRAG"
+    log "已写入无 Docker 前端版站点配置(root=$PREFIX/www/...)"
   fi
   log "装配完成"
 }

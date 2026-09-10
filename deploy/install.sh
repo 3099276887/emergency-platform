@@ -11,6 +11,8 @@ die()  { printf '[错误] %s\n' "$*" >&2; exit 1; }
 TAR="${1:-$(pwd)/emergency_offline.tar}"
 ETH_CIDR="${ETH_CIDR:-192.168.0.0/16}"
 FIREWALL_SKIP="${FIREWALL_SKIP:-0}"
+# 安置根: 打包含内容落在哪个前缀下必须与打包时 PREFIX 一致(默认 /data)
+PREFIX="${PREFIX:-/data}"
 
 preflight() {
   log "==== 前置校验 ===="
@@ -20,8 +22,14 @@ preflight() {
 }
 
 unpack() {
-  log "==== 解压(恢复绝对路径) ===="
+  log "==== 解压(恢复绝对路径; 源盒 /data2 已整体落到 $PREFIX) ===="
   # -P 保留绝对路径; 本包为未压缩 tar, 用 xpPf 不带 z
+  # 可用空间: 若 $PREFIX 是独立挂载点则查它, 否则查根分区
+  local disk="$PREFIX"; mountpoint -q "$PREFIX" 2>/dev/null || disk="/"
+  local av; av="$(df -k --output=avail "$disk" 2>/dev/null | awk 'NR==2{print $1}')"
+  if [ -n "$av" ] && [ "$((av/1024/1024))" -lt 14 ]; then
+    warn "可用空间不足 14G(当前 ~$((av/1024/1024))G, 挂载点 $disk), 解压 ~11G 可能失败。请扩容后再跑。"
+  fi
   tar xpPf "$TAR" -C /
 }
 
