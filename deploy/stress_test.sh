@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stress_test.sh —— 硬件压测, 供《硬件测试报告》T04/T06 取数
+# stress_test.sh —— 硬件压测, 供《硬件测试报告》T03/T04 取数
 # 用法:
 #   bash stress_test.sh        # 一轮: CPU+内存+磁盘压测
 #   bash stress_test.sh --cpu  # 仅 CPU 压测(10 秒)

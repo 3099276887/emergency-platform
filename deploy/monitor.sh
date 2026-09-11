@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # monitor.sh —— 系统性能/资源快照(只读)
-# 对应《硬件测试报告》T06 资源监控, 配合 stress_test.sh 观察
+# 对应《硬件测试报告》T04 资源监控, 配合 stress_test.sh 观察
 # 用法:
 #   bash monitor.sh            # 单次快照
 #   bash monitor.sh -l 5 3     # 每5秒采样1次,共3次
